@@ -7,7 +7,7 @@
 #include <memory> // For std::destroy_at
 #include <type_traits>
 #include <typeinfo> // For std::bad_cast
-#include <utility> // For std::index_sequence
+#include <utility>  // For std::index_sequence
 
 /// User facing macro that declares all mappings defined below
 #define FASTVIS_DEFINE(Type, ID, ParentType, Corporeality)                     \
@@ -627,7 +627,7 @@ struct InvocableIndicesImpl:
     std::conditional_t<
         /// `IsInvocable` =
         IDIsConcrete<(IDType)Current> /// `Current` must be concrete to even be
-            /// considered invocable
+                                      /// considered invocable
             && ctIsaImpl(ID, (IDType)Current), /// and `Current` must be derived
         /// from `ID`
         InvocableIndicesImpl<ID, IDType, Current + 1, Last, InvocableIndices...,
@@ -1171,13 +1171,13 @@ private:
 /// # Base helper
 
 template <typename Base>
-struct dyn_base_helper {
+struct base_helper {
     using IDType = impl::TypeToIDType<Base>;
 
-    constexpr dyn_base_helper(IDType ID): _id(ID) {}
+    constexpr base_helper(IDType ID): _id(ID) {}
 
 private:
-    friend constexpr IDType get_rtti(dyn_base_helper const& This) {
+    friend constexpr IDType get_rtti(base_helper const& This) {
         return This._id;
     }
 
@@ -1241,6 +1241,33 @@ template <typename... F>
 overload(F...) -> overload<F...>;
 
 } // namespace fastvis
+
+/// # range utilities
+
+#if defined __has_include
+#if __has_include(<ranges>)
+#include <ranges>
+
+#define FASTVIS_IMPL_HAS_RANGES 1
+
+namespace fastvis {
+
+template <impl::Dynamic T>
+inline constexpr auto filter =
+    std::views::filter(isa<T>) |
+    std::views::transform([]<typename U>(U&& u) -> decltype(auto) {
+    if constexpr (std::is_pointer_v<std::remove_cvref_t<U>>) {
+        return cast<impl::copy_cvref_t<std::remove_reference_t<U>, T>*>(u);
+    }
+    else {
+        return cast<impl::copy_cvref_t<std::remove_reference_t<U>, T>&>(u);
+    }
+});
+
+} // namespace fastvis
+
+#endif // __has_include (<ranges>)
+#endif // defined __has_include
 
 /// # Undef
 

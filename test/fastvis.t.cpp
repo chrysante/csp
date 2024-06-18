@@ -1,6 +1,7 @@
 #define FASTVIS_IMPL_ENABLE_DEBUGGING
 
 #include <functional>
+#include <vector>
 
 #include <fastvis.hpp>
 
@@ -182,9 +183,9 @@ FASTVIS_DEFINE(Leopard, ID::Leopard, Animal, Concrete)
 
 namespace {
 
-class Animal: public fastvis::dyn_base_helper<Animal> {
+class Animal: public fastvis::base_helper<Animal> {
 protected:
-    constexpr Animal(ID id): dyn_base_helper(id) {}
+    constexpr Animal(ID id): base_helper(id) {}
 };
 
 struct Cetacea: Animal {
@@ -786,6 +787,18 @@ static void testPartialUnion() {
     assert(result == 1);
 }
 
+static void testRanges() {
+#if FASTVIS_IMPL_HAS_RANGES
+    Dolphin dolphin;
+    Whale whale;
+    Leopard leopard;
+    std::vector<Animal*> animals = { &dolphin, &whale, &leopard };
+    assert(std::ranges::distance(animals | fastvis::filter<Dolphin>) == 1);
+    auto* d = (animals | fastvis::filter<Dolphin>).front();
+    static_assert(std::is_same_v<Dolphin*, decltype(d)>);
+#endif // FASTVIS_IMPL_HAS_RANGES
+}
+
 int main() {
     testInternals();
     testIsaAndDyncast();
@@ -803,4 +816,5 @@ int main() {
     testToFunction();
     testDynUnion();
     testPartialUnion();
+    testRanges();
 }

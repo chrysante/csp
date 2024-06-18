@@ -8,13 +8,13 @@ let me show you the benefits.
 
 ### Pattern matching example
 
-Say you have a class hierarchy of all kinds of animals and you want to map different kinds of animals to the habitats.
+Say you have a class hierarchy of animals and you want to map different kinds of animals to their habitats.
 This library allows you to use a pattern matching style `visit` expression for this task:
 
     #include "Animals.h"
 
     std::string getHabitat(Animal const& animal) {
-        return fastvis::visit(animal, overload{
+        return fastvis::visit(animal, fastvis::overload{
             [](Mammal const&) { return "Land"; },
             [](Dolphin const&) { return "Water"; },
             [](Fish const&) { return "Water"; },
@@ -28,26 +28,26 @@ This library allows you to use a pattern matching style `visit` expression for t
 
 This is the `Animal` class hierarchy defined in `"Animals.hpp"`
 
-    - Animal 
-    +-+ Mammal
-    | +-- Cat 
-    | +-- Dog
-    | +-- Dolphin
-    +-+ Fish
-    | +-- Goldfish
-    | +-- Shark
-    +-+ Bird
-      +-- Sparrow
-      +-- Hawk
+    Animal 
+    ├─ Mammal
+    │  ├─ Cat 
+    │  ├─ Dog
+    │  └─ Dolphin
+    ├─ Fish
+    │  ├─ Goldfish
+    │  └─ Shark
+    └─ Bird
+       ├─ Sparrow
+       └─ Hawk
     
 Note that we don't have to list every single class in the `visit` expression. If
 several child classes have the same behaviour, 
 it is sufficient to define the behaviour for a base class. This means we can 
 only mention the `Fish` class to define the behaviour for `Goldfish` and 
-`Shark`s, both of whom live in water. 
-The same goes for `Sparrow`s and `Hawk`s, whose behaviour is defined only for 
+`Shark`, both of whom live in water. 
+The same goes for `Sparrow` and `Hawk`, whose behaviour is defined only for 
 the `Bird` parent class.
-Most mammals live on land, so we define `Mammal`s to return `"Land"`, but add a special case 
+Most mammals live on land, so we define `Mammal` to return `"Land"`, but add a special case 
 for `Dolphin`.
 
 ### Another classical OOP example: shapes!
@@ -93,29 +93,29 @@ The library provides three type inspection "operators": `isa`, `dyncast` and `ca
 
 - `isa` tests if a pointer or reference to a base class is an instance of a specific derived class:
     
-    Cat cat;
-    Animal& animal = cat;
-    assert(fastvis::isa<Cat>(animal));
+        Cat cat;
+        Animal& animal = cat;
+        assert(fastvis::isa<Cat>(animal));
     
 - `dyncast` works just like `dynamic_cast`. 
 Casting pointers returns `nullptr` if the cast failed, or a pointer to the derived type. Casting references throws `std::bad_cast` on failure.
     
-    Cat cat;
-    Animal* animal = &cat;
-    assert(fastvis::dyncast<Cat*>(animal) == &cat);
-    assert(fastvis::dyncast<Dog*>(animal) == nullptr);
-     
-    try {
-        fastvis::dyncast<Dog&>(*animal);
-    }
-    catch (std::bad_cast const&) {}
+        Cat cat;
+        Animal* animal = &cat;
+        assert(fastvis::dyncast<Cat*>(animal) == &cat);
+        assert(fastvis::dyncast<Dog*>(animal) == nullptr);
+         
+        try {
+            fastvis::dyncast<Dog&>(*animal);
+        }
+        catch (std::bad_cast const&) {}
     
 - `cast` works like `dyncast`, except that a failed cast results in undefined behaviour. It should rarely be used and can be thought of as a replacement for `static_cast` to a derived type.
-If `NDEBUG` is defined (release builds), the library assumes that all `cast`s succeed. Otherwise (in debug builds) the library asserts that all `cast`s succeed. 
+If `NDEBUG` is defined (release builds), the library assumes that all `cast`'s succeed. Otherwise (in debug builds) the library asserts that `cast` succeeds. 
 
 ## Setup (the ugly part)
 
-The code above is nice, but it's not entirely free. For `isa`, `dyncast`, `cast` and `visit` to work with a class hierarchy, a few mappings need to be defined:
+The code above is nice, but it doesn't come for free. For `isa`, `dyncast`, `cast` and `visit` to work with a class hierarchy, a few mappings need to be defined:
 
     // Forward declarations of all classes in the hierarchy
     class Animal;
@@ -146,7 +146,7 @@ The code above is nice, but it's not entirely free. For `isa`, `dyncast`, `cast`
     };
 
     // Bindings to the library, in the global namespace:
-    //           - Type    - Enum ID           - Parent class   - 'Corporeality'
+    //           - Type    - Enum ID           - Parent class   - Abstract or Concrete
     FASTVIS_DEFINE(Animal,   AnimalID::Animal,   void,            Abstract)
     FASTVIS_DEFINE(Mammal,   AnimalID::Mammal,   Animal,          Abstract)
     FASTVIS_DEFINE(Cat,      AnimalID::Cat,      Mammal,          Concrete)
@@ -169,22 +169,22 @@ doesn't require the classes to have virtual functions, this cannot be implemente
 
 One more thing the library needs, is the actual runtime type information. This is achieved with the enum defined above.
 
-The base class of the hierarchy inherits from `fastvis::dyn_base_helper` to handle the RTTI:
+The base class of the hierarchy inherits from `fastvis::base_helper` to handle the RTTI:
 
-    class Animal: public fastvis::dyn_base_helper<Animal> {
+    class Animal: public fastvis::base_helper<Animal> {
     protected:
-        Animal(AnimalID ID): dyn_base_helper(ID) {}   
+        Animal(AnimalID ID): base_helper(ID) {}   
     };
     
-Inheriting from `fastvis::dyn_base_helper` is not required, you can also manage the RTTI yourself.
-To expose the type identifiers to the library, define a function `dyncast_get_type` accessible via ADL:
+Inheriting from `fastvis::base_helper` is not required, you can also manage the RTTI yourself.
+To expose the type identifiers to the library, define a function `get_rtti` accessible via ADL:
     
     class Animal {
     protected:
         Animal(AnimalID ID): ID(ID) {}
         
     private:
-        friend AnimalID dyncast_get_type(Animal const& animal) { return animal.ID; }
+        friend AnimalID get_rtti(Animal const& animal) { return animal.ID; }
     
         AnimalID ID;
     };
@@ -204,7 +204,8 @@ Then you can define all other classes as you normally would
         float m_size;   
     };
     
-Note that all concrete classes must pass their type ID to the constructor of their parent class
+Note that all concrete classes must pass their type ID to the constructor of 
+their parent class
     
     class Cat: public Mammal {
     public:
@@ -213,33 +214,50 @@ Note that all concrete classes must pass their type ID to the constructor of the
     
     // ...
 
-`isa` works with incomplete types. If you have a pointer `Animal* animal`, you use `isa<Cat>(animal)` to test if `animal` is a `Cat` (or any derived type) without including the header of the type under test.
-
-`isa` is implemented with a lookup table built at compile time. The information needed to build the lookup table is defined by the user with the `FASTVIS_DEFINE` macro.
-
-`cast` and `dyncast` internally use `isa` followed by a `static_cast`. 
+`isa` works with incomplete types. If you have a pointer `Animal* animal`, you 
+can use `isa<Cat>(animal)` to test if `animal` is a `Cat` (or any derived type)
+without including the header of the type under test.
 
 ## Comparison to the OOP visitor pattern 
 
-All in a class hierarchy must be known at compile time. This is drawback classiscal polymorphism, where additional derived types can even be defined by third party plugin libraries. 
+All types in a class hierarchy must be known at compile time. 
+This is drawback compared to classical polymorphism, where additional derived types can 
+even be defined by third party plugin libraries. 
 
-However, in the OOP visitor pattern, all types must be known at compile time as well. Also, a lot of boiler plate similar to 
-the setup code required for this library is required by the visitor pattern. Unlike the visitor pattern, the dynamic dispatch performed by this library is very fast and allows ad-hoc definition of visitor. No need to derive from a `Visitor` class and no double indirect call is required.
+However, in the OOP visitor pattern, all types must be known at compile time as 
+well. Also, a lot of boiler plate similar to the setup code required for this
+library is required by the visitor pattern. Unlike the visitor pattern, the 
+dynamic dispatch performed by this library is very fast and allows ad-hoc 
+definition of visitors. No need to derive from a `Visitor` class and no double 
+indirect call is required.
 
-On top of that, it makes multiple dispatch trivial. Simply pass multiple arguments to `visit` and let the vistor take multiple parameters.  
+On top of that, it makes multiple dispatch trivial. Simply pass multiple 
+arguments to `visit` and let the vistor take multiple parameters.  
 
 ## Comparison to `std::visit(std::variant)`
 
-Attentive readers may have noticed that everything described above is very similar to `std::visit(std::variant)`.
-In fact, the implementation is very similar, and if `std::variant` solves your problems, it's probably best to stick to that.  
+Attentive readers may have noticed that everything described above is very 
+similar to `std::visit(std::variant)`. In fact, the implementation is very 
+similar, and if `std::variant` solves your problems, it's probably best to 
+stick to that.  
 
-However, `std::variant` has drawbacks as well. The major one being, that it's completely unstructured. A `std::variant<Dog, Cat, Dolphin, ...>` is a flat list of all contained types.
-All you can do to meaningfully access the contained value, is `std::visit` and handle each type separately. 
-With this library you always have an `Animal&` or `Animal*` and you can access the interface of the base class. Also you can define behaviours for base classes of subsets, like `Mammal` or `Fish`. 
+However, `std::variant` has drawbacks as well. The major one being, that it's 
+completely unstructured. A `std::variant<Dog, Cat, Dolphin, ...>` is a flat list
+of all contained types. All you can do to meaningfully access the contained 
+value, is `std::visit` or `std::get` and handle each type separately. 
+With this library you always have an `Animal&` or `Animal*` and you can access 
+the interface of the base class. Also you can define behaviours for base classes
+ of subsets, like `Mammal` or `Fish`. 
 
 ## Performance
 
 Very similar to `std::variant`. 
+
+`isa` is implemented with a lookup table built at compile time. The information 
+needed to build the lookup table is defined by the user with the `FASTVIS_DEFINE` 
+macro.
+
+`cast` and `dyncast` internally use `isa` followed by a `static_cast`. 
 
 Here are sketch implementations of the various functions: 
 
@@ -274,7 +292,7 @@ Here are sketch implementations of the various functions:
 
     template <typename T, typename Visitor>
     decltype(auto) visit(T& object, Visitor&& vis) {
-        using FuncPtr = /*return-type*/(*)(T&, Visitor&&);
+        using FuncPtr = /*common-return-type*/(*)(T&, Visitor&&);
         static constexpr FuncPtr Table[/* num-classes */] = /* ... */;
         return Table[object./*runtime-id*/](object, std::forward<Visitor>(vis));
     }
@@ -300,15 +318,15 @@ If you don't want to dynamically allocate your objects, you can use the `dyn_uni
     fastvis::dyn_union<Animal> animal = Cat{};
     static_assert(sizeof(fastvis::dyn_union<Animal>) == std::max({ sizeof(Cat), sizeof(Dog), ... }));
 
-You can always use an unqualified call to `dyncast_get_type` to get the runtime type ID of an object:
+You can always use an unqualified call to `get_rtti` to get the runtime type ID of an object:
     
     Cat cat;
     Animal& animal = cat;
-    assert(fastvis::dyncast_get_type(animal) == AnimalID::Cat);
+    assert(get_rtti(animal) == AnimalID::Cat);
 
 In my projects where I use this library, I bring the operators into my project scope so I don't have to qualify calls to the operators:
  
-    #include <dyncast.hpp>
+    #include <fastvis.hpp>
  
     namespace MyProject {
          using fastvis::isa;
@@ -323,7 +341,7 @@ A few range utilities are provided:
 
     std::vector<Animal*> animals = /* ... */;
     
-    // Visit all birds
+    // Filters the birds and casts the range elements to `Bird*`
     for (Bird* bird: animals | fastvis::filter<Bird>) {
     
     }
