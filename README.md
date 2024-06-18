@@ -213,10 +213,13 @@ their parent class
     };
     
     // ...
+    
+### Incomplete types
 
-`isa` works with incomplete types. If you have a pointer `Animal* animal`, you 
-can use `isa<Cat>(animal)` to test if `animal` is a `Cat` (or any derived type)
-without including the header of the type under test.
+`isa` works with incomplete types. This is why the parent class must be specified in the `FASTVIS_DEFINE` macro.
+The alternative was that all classes in the hierarchy must be complete for `isa` and `dyncast` to work, which 
+can be bad for compile times, so I decided to put the burden on the user to specify the parent relationship here.
+The library asserts that the specified parent class is actually a parent class whenever possible.  
 
 ## Comparison to the OOP visitor pattern 
 
@@ -237,8 +240,7 @@ arguments to `visit` and let the vistor take multiple parameters.
 ## Comparison to `std::visit(std::variant)`
 
 You may have noticed that everything described above is very 
-similar to `std::visit(std::variant)`. The implementation is  
-similar as well, and if `std::variant` solves your problems, it's probably best to 
+similar to `std::visit(std::variant)`. The implementation is  similar as well, and if `std::variant` solves your problems, it's probably best to 
 stick to that.  
 
 However, `std::variant` has a major drawback: It is 
