@@ -24,3 +24,9 @@ endif()
 add_executable(fastvis-test test/fastvis.t.cpp)
 
 target_link_libraries(fastvis-test fastvis)
+
+add_executable(fastvis-examples 
+	examples/animals.cpp
+	examples/animals.hpp)
+
+target_link_libraries(fastvis-examples fastvis)
