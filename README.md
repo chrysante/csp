@@ -11,7 +11,7 @@ let me show you the benefits.
 Say you have a class hierarchy of animals and you want to map different kinds of animals to their habitats.
 This library allows you to use a pattern matching style `visit` expression for this task:
 
-    #include "Animals.h"
+    #include "animals.h"
 
     std::string getHabitat(Animal const& animal) {
         return fastvis::visit(animal, fastvis::overload{
@@ -26,7 +26,7 @@ This library allows you to use a pattern matching style `visit` expression for t
     assert(getHabitat(Shark{}) == "Water");
     assert(getHabitat(Sparrow{}) == "Air");
 
-This is the `Animal` class hierarchy defined in `"Animals.hpp"`
+This is the `Animal` class hierarchy defined in `"animals.hpp"`
 
     Animal 
     ├─ Mammal
@@ -236,18 +236,18 @@ arguments to `visit` and let the vistor take multiple parameters.
 
 ## Comparison to `std::visit(std::variant)`
 
-Attentive readers may have noticed that everything described above is very 
-similar to `std::visit(std::variant)`. In fact, the implementation is very 
-similar, and if `std::variant` solves your problems, it's probably best to 
+You may have noticed that everything described above is very 
+similar to `std::visit(std::variant)`. The implementation is  
+similar as well, and if `std::variant` solves your problems, it's probably best to 
 stick to that.  
 
-However, `std::variant` has drawbacks as well. The major one being, that it's 
+However, `std::variant` has a major drawback: It is 
 completely unstructured. A `std::variant<Dog, Cat, Dolphin, ...>` is a flat list
 of all contained types. All you can do to meaningfully access the contained 
 value, is `std::visit` or `std::get` and handle each type separately. 
-With this library you always have an `Animal&` or `Animal*` and you can access 
+With this library you always have an `Base&` or `Base*` and you can access 
 the interface of the base class. Also you can define behaviours for base classes
- of subsets, like `Mammal` or `Fish`. 
+ of subsets, like `Mammal` or `Fish` in the example above. 
 
 ## Performance
 
