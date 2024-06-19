@@ -1,8 +1,13 @@
 #include "animals.hpp"
 
+#include <array>
 #include <iostream>
 #include <random>
 #include <string>
+
+#ifdef __GNUC__
+#include <cxxabi.h>
+#endif
 
 using namespace examples;
 using namespace fastvis;
@@ -31,32 +36,47 @@ DynUniquePtr<T> makeDynUnique(Args&&... args) {
 
 static DynUniquePtr<Animal> generateAnimal() {
     static std::mt19937 rng(std::random_device{}());
+    static std::array<std::string, 10> const names = {
+        "Willie", "Laverne", "Patty", "Alfred",      "Bradley",
+        "Rose",   "Tammy",   "Eddie", "Christopher", "Everett",
+    };
+    std::uniform_int_distribution<size_t> nameDist(0, names.size() - 1);
     switch (std::uniform_int_distribution<>(0, 6)(rng)) {
-    case 0: return makeDynUnique<Cat>();
-    case 1: return makeDynUnique<Dog>();
-    case 2: return makeDynUnique<Dolphin>();
-    case 3: return makeDynUnique<Goldfish>();
-    case 4: return makeDynUnique<Shark>();
-    case 5: return makeDynUnique<Sparrow>();
-    case 6: return makeDynUnique<Hawk>();
+    case 0: return makeDynUnique<Cat>(names[nameDist(rng)]);
+    case 1: return makeDynUnique<Dog>(names[nameDist(rng)]);
+    case 2: return makeDynUnique<Dolphin>(names[nameDist(rng)]);
+    case 3: return makeDynUnique<Goldfish>(names[nameDist(rng)]);
+    case 4: return makeDynUnique<Shark>(names[nameDist(rng)]);
+    case 5: return makeDynUnique<Sparrow>(names[nameDist(rng)]);
+    case 6: return makeDynUnique<Hawk>(names[nameDist(rng)]);
     default: assert(false);
     }
 }
 
-static std::string getName(Animal const& animal) {
-    return visit(animal, []<typename T>(T const&) { return typeid(T).name(); });
+static std::string getTypeName(Animal const& animal) {
+    return visit(animal, []<typename T>(T const&) {
+#ifndef __GNUC__
+        return typeid(T).name();
+#else
+        int status;
+        char* name = abi::__cxa_demangle(typeid(T).name(), 0, 0, &status);
+        auto res = name ? std::string(name) : typeid(T).name();
+        std::free(name);
+        return res;
+#endif
+    });
 }
 
 static void printHabitats() {
     for (int i = 0; i < 10; ++i) {
         auto animal = generateAnimal();
-        std::cout << getName(*animal) << " lives in: " << getHabitat(*animal)
-                  << std::endl;
+        std::cout << animal->name() << " is a " << getTypeName(*animal)
+                  << " who lives in: " << getHabitat(*animal) << std::endl;
     }
 }
 
 static void showcaseOperators() {
-    Cat cat;
+    Cat cat("Harald");
     Animal& animal = cat;
     assert(isa<Cat>(animal));
     assert(dyncast<Cat*>(&animal) == &cat);
@@ -70,7 +90,15 @@ static void showcaseOperators() {
     }
 }
 
+static void showcaseUnion() {
+    fastvis::dyn_union<Animal> animal = Cat("Herbert");
+    std::cout << animal->name() << std::endl;
+}
+
 int main() {
+    assert(getHabitat(Cat("Chloe")) == "Land");
+    assert(getHabitat(Shark("Sophia")) == "Water");
+    assert(getHabitat(Sparrow("Marcus")) == "Air");
     printHabitats();
     showcaseOperators();
 }

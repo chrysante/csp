@@ -1,3 +1,8 @@
+#ifndef ANIMALS_HPP
+#define ANIMALS_HPP
+
+#include <string>
+
 #include "fastvis.hpp"
 
 namespace examples {
@@ -30,38 +35,32 @@ enum class AnimalID {
 
 } // namespace examples
 
-FASTVIS_DEFINE(examples::Animal, examples::AnimalID::Animal, void, Abstract)
-FASTVIS_DEFINE(examples::Mammal, examples::AnimalID::Mammal, examples::Animal,
-               Abstract)
-FASTVIS_DEFINE(examples::Cat, examples::AnimalID::Cat, examples::Mammal,
-               Concrete)
-FASTVIS_DEFINE(examples::Dog, examples::AnimalID::Dog, examples::Mammal,
-               Concrete)
-FASTVIS_DEFINE(examples::Dolphin, examples::AnimalID::Dolphin, examples::Mammal,
-               Concrete)
-FASTVIS_DEFINE(examples::Fish, examples::AnimalID::Fish, examples::Animal,
-               Abstract)
-FASTVIS_DEFINE(examples::Goldfish, examples::AnimalID::Goldfish, examples::Fish,
-               Concrete)
-FASTVIS_DEFINE(examples::Shark, examples::AnimalID::Shark, examples::Fish,
-               Concrete)
-FASTVIS_DEFINE(examples::Bird, examples::AnimalID::Bird, examples::Animal,
-               Abstract)
-FASTVIS_DEFINE(examples::Sparrow, examples::AnimalID::Sparrow, examples::Bird,
-               Concrete)
-FASTVIS_DEFINE(examples::Hawk, examples::AnimalID::Hawk, examples::Bird,
-               Concrete)
+// clang-format off
+FASTVIS_DEFINE(examples::Animal,   examples::AnimalID::Animal,   void,             Abstract)
+FASTVIS_DEFINE(examples::Mammal,   examples::AnimalID::Mammal,   examples::Animal, Abstract)
+FASTVIS_DEFINE(examples::Cat,      examples::AnimalID::Cat,      examples::Mammal, Concrete)
+FASTVIS_DEFINE(examples::Dog,      examples::AnimalID::Dog,      examples::Mammal, Concrete)
+FASTVIS_DEFINE(examples::Dolphin,  examples::AnimalID::Dolphin,  examples::Mammal, Concrete)
+FASTVIS_DEFINE(examples::Fish,     examples::AnimalID::Fish,     examples::Animal, Abstract)
+FASTVIS_DEFINE(examples::Goldfish, examples::AnimalID::Goldfish, examples::Fish,   Concrete)
+FASTVIS_DEFINE(examples::Shark,    examples::AnimalID::Shark,    examples::Fish,   Concrete)
+FASTVIS_DEFINE(examples::Bird,     examples::AnimalID::Bird,     examples::Animal, Abstract)
+FASTVIS_DEFINE(examples::Sparrow,  examples::AnimalID::Sparrow,  examples::Bird,   Concrete)
+FASTVIS_DEFINE(examples::Hawk,     examples::AnimalID::Hawk,     examples::Bird,   Concrete)
+// clang-format on
 
 namespace examples {
 
-class Animal {
+class Animal: public fastvis::base_helper<Animal> {
+public:
+    std::string const& name() const { return m_name; }
+
 protected:
-    Animal(AnimalID ID): ID(ID) {}
+    Animal(AnimalID ID, std::string name):
+        base_helper(ID), m_name(std::move(name)) {}
 
 private:
-    friend AnimalID get_rtti(Animal const& animal) { return animal.ID; }
-
-    AnimalID ID;
+    std::string m_name;
 };
 
 class Mammal: public Animal {
@@ -71,35 +70,34 @@ protected:
 
 class Cat: public Mammal {
 public:
-    Cat(): Mammal(AnimalID::Cat) {}
+    explicit Cat(std::string name): Mammal(AnimalID::Cat, std::move(name)) {}
 };
 
 class Dog: public Mammal {
 public:
-    Dog(): Mammal(AnimalID::Dog) {}
+    explicit Dog(std::string name): Mammal(AnimalID::Dog, std::move(name)) {}
 };
 
 class Dolphin: public Mammal {
 public:
-    Dolphin(): Mammal(AnimalID::Dolphin) {}
+    explicit Dolphin(std::string name):
+        Mammal(AnimalID::Dolphin, std::move(name)) {}
 };
 
 class Fish: public Animal {
 protected:
-    Fish(AnimalID ID, float size): Animal(ID), m_size(size) {}
-
-private:
-    float m_size;
+    using Animal::Animal;
 };
 
 class Goldfish: public Fish {
 public:
-    Goldfish(float size = 1): Fish(AnimalID::Goldfish, size) {}
+    explicit Goldfish(std::string name):
+        Fish(AnimalID::Goldfish, std::move(name)) {}
 };
 
 class Shark: public Fish {
 public:
-    Shark(float size = 100): Fish(AnimalID::Shark, size) {}
+    explicit Shark(std::string name): Fish(AnimalID::Shark, std::move(name)) {}
 };
 
 class Bird: public Animal {
@@ -109,12 +107,15 @@ protected:
 
 class Sparrow: public Bird {
 public:
-    Sparrow(): Bird(AnimalID::Sparrow) {}
+    explicit Sparrow(std::string name):
+        Bird(AnimalID::Sparrow, std::move(name)) {}
 };
 
 class Hawk: public Bird {
 public:
-    Hawk(): Bird(AnimalID::Hawk) {}
+    explicit Hawk(std::string name): Bird(AnimalID::Hawk, std::move(name)) {}
 };
 
 } // namespace examples
+
+#endif // ANIMALS_HPP
