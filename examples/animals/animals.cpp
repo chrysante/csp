@@ -1,4 +1,4 @@
-#include "animals.hpp"
+#include "animals/animals.hpp"
 
 #include <array>
 #include <iostream>
