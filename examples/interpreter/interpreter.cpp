@@ -10,23 +10,23 @@ using namespace fastvis;
 struct Interpreter::Impl {
 public:
     Impl(InterpreterDelegate& delegate): delegate(delegate) {}
-    
+
     void run(Program const& prog) {
         for (auto* stmt : prog.statements()) {
             interpret(*stmt);
         }
     }
-    
+
     void interpret(Statement const& stmt) {
         visit(stmt, [&](auto& stmt) { doInterpret(stmt); });
     }
-    
+
     void doInterpret(EmptyStatement const&) {}
-    
+
     void doInterpret(VarDecl const& decl) {
         IDMap[decl.name()->value()] = eval(*decl.initExpr());
     }
-    
+
     void doInterpret(InstrStatement const& stmt) {
         using enum InstrStatement::Instruction;
         switch (stmt.instruction()) {
@@ -36,21 +36,19 @@ public:
             }
             break;
         }
-        case Quit:
-            delegate.quit();
-            break;
+        case Quit: delegate.quit(); break;
         }
     }
-    
+
     void doInterpret(ExprStatement const& stmt) {
         double value = eval(*stmt.expr());
         delegate.eval(value);
     }
-    
+
     double eval(Expr const& expr) {
         return visit(expr, [&](auto& expr) { return doEval(expr); });
     }
-    
+
     double doEval(Identifier const& ID) {
         auto itr = IDMap.find(ID.value());
         if (itr == IDMap.end()) {
@@ -59,9 +57,9 @@ public:
         }
         return itr->second;
     }
-    
+
     double doEval(Literal const& lit) { return lit.value(); }
-    
+
     double doEval(BinaryExpr const& expr) {
         double lhs = eval(*expr.lhs());
         double rhs = eval(*expr.rhs());
@@ -74,7 +72,7 @@ public:
         case Pow: return std::pow(lhs, rhs);
         }
     }
-    
+
     double doEval(UnaryExpr const& expr) {
         double operand = eval(*expr.operand());
         switch (expr.getOperator()) {
@@ -83,12 +81,12 @@ public:
         case Negate: return -operand;
         }
     }
-    
+
     template <int N>
-    double callImpl(CallExpr const& call, std::string_view functionName, auto fn) {
+    double callImpl(CallExpr const& call, std::string_view functionName,
+                    auto fn) {
         if (call.arguments().size() != N) {
-            throw std::runtime_error(
-                                     "Invalid number of arguments");
+            throw std::runtime_error("Invalid number of arguments");
         }
         return [&]<size_t... I>(std::index_sequence<I...>) {
             return fn(eval(*call.arguments()[I])...);
@@ -100,9 +98,11 @@ public:
         if (!ID) {
             throw std::runtime_error("Cannot call expression");
         }
-#define IMPL(name, numArgs, nativeName) \
-if (ID->value() == name) {\
-return callImpl<numArgs>(expr, ID->value(), [](auto... args) { return nativeName(args...); }); \
+#define IMPL(name, numArgs, nativeName)                                        \
+    if (ID->value() == name) {                                                 \
+        return callImpl<numArgs>(expr, ID->value(), [](auto... args) {         \
+            return nativeName(args...);                                        \
+        });                                                                    \
     }
         IMPL("sqrt", 1, std::sqrt);
         IMPL("pow", 2, std::pow);
@@ -112,7 +112,7 @@ return callImpl<numArgs>(expr, ID->value(), [](auto... args) { return nativeName
         IMPL("log2", 1, std::log2);
         throw std::runtime_error("Use of unknown function: " + ID->value());
     }
-    
+
     InterpreterDelegate& delegate;
     std::map<std::string, double> IDMap;
 };

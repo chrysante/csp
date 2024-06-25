@@ -1,8 +1,8 @@
 #include <iostream>
 
 #include "ast.hpp"
-#include "parser.hpp"
 #include "interpreter.hpp"
+#include "parser.hpp"
 #include "terminal.hpp"
 #include "utils.hpp"
 
@@ -12,9 +12,10 @@ namespace {
 
 struct TermDelegateImpl: TerminalDelegate {
     Interpreter& interpreter;
-    
-    explicit TermDelegateImpl(Interpreter& interpreter): interpreter(interpreter){}
-    
+
+    explicit TermDelegateImpl(Interpreter& interpreter):
+        interpreter(interpreter) {}
+
     void onInput(std::string input) override {
         input += ";";
         try {
@@ -28,10 +29,8 @@ struct TermDelegateImpl: TerminalDelegate {
             printf("%s\n", e.what());
         }
     }
-    
-    bool complete(std::string& input) override {
-        return false;
-    }
+
+    bool complete(std::string& input) override { return false; }
 };
 
 struct InterpreterDelegateImpl: InterpreterDelegate {
@@ -43,19 +42,17 @@ struct InterpreterDelegateImpl: InterpreterDelegate {
         std::cout << value << std::endl;
         format(Format::Reset);
     }
-    
+
     void eval(double value) override {
-        format(Format::Grey, Format::Bold);        
+        format(Format::Grey, Format::Bold);
         std::cout << ">> " << value << std::endl;
         format(Format::Reset);
     }
-    
-    void quit() override {
-        throw QuitException();
-    }
+
+    void quit() override { throw QuitException(); }
 };
 
-}
+} // namespace
 
 int main() {
     InterpreterDelegateImpl interpreterDelegate;

@@ -1,14 +1,12 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include <exception>
 #include <concepts>
+#include <exception>
 
 namespace examples {
 
-enum class Format {
-    Red, Green, Blue, Grey, Bold, Reset
-};
+enum class Format { Red, Green, Blue, Grey, Bold, Reset };
 
 void format(Format f);
 

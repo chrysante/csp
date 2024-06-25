@@ -32,39 +32,35 @@ struct Token {
 
 class Lexer {
     std::string_view text;
-    
+
     void skipWhitespace() {
         while (!text.empty() && std::isspace((int)text.front())) {
             inc();
         }
     }
-    
+
     void inc() {
         assert(!text.empty());
         text = text.substr(1);
     }
-    
+
     std::string_view getID(char const* begin) const {
         return std::string_view(begin, std::to_address(text.begin()));
     }
-    
+
     inline static std::map<std::string_view, TokenKind> const keywords = {
         { "let", TokenKind::Let },
         { "print", TokenKind::Print },
         { "quit", TokenKind::Quit }
     };
-    
+
 public:
     explicit Lexer(std::string_view text): text(text) {}
-    
-    static bool isIDBegin(char c) {
-        return std::isalpha((int)c) || c == '_';
-    }
-    
-    static bool isID(char c) {
-        return isIDBegin(c) || std::isdigit((int)c);
-    }
-    
+
+    static bool isIDBegin(char c) { return std::isalpha((int)c) || c == '_'; }
+
+    static bool isID(char c) { return isIDBegin(c) || std::isdigit((int)c); }
+
     Token next() {
         skipWhitespace();
         if (text.empty()) {
@@ -129,9 +125,9 @@ DynUniquePtr<T> allocate(Args&&... args) {
 class Parser {
 public:
     explicit Parser(Lexer lexer): lexer(lexer) {}
-    
+
     explicit Parser(std::string_view text): lexer(text) {}
-    
+
     DynUniquePtr<Program> parse() {
         std::vector<DynUniquePtr<ASTNode>> statements;
         while (true) {
@@ -143,10 +139,10 @@ public:
             }
         }
     }
-    
+
 private:
     DynUniquePtr<Expr> parseExpr() { return parseBinaryExpr(); }
-    
+
     static std::optional<BinaryExpr::Operator> toBinOp(TokenKind kind) {
         switch (kind) {
         case TokenKind::Add: return BinaryExpr::Add;
@@ -157,7 +153,7 @@ private:
         default: return std::nullopt;
         }
     }
-    
+
     DynUniquePtr<Expr> parseBinaryExpr() {
         auto lhs = parseUnaryExpr();
         while (true) {
@@ -170,7 +166,7 @@ private:
             return lhs;
         }
     }
-    
+
     static std::optional<UnaryExpr::Operator> toUnOp(TokenKind kind) {
         switch (kind) {
         case TokenKind::Add: return UnaryExpr::Promote;
@@ -178,7 +174,7 @@ private:
         default: return std::nullopt;
         }
     }
-    
+
     DynUniquePtr<Expr> parseUnaryExpr() {
         if (auto op = toUnOp(peek().kind)) {
             eat();
@@ -188,7 +184,7 @@ private:
         }
         return parseCallExpr();
     }
-    
+
     template <typename T = Expr>
     std::vector<DynUniquePtr<T>> parseArgumentList(TokenKind delim) {
         std::vector<DynUniquePtr<T>> arguments;
@@ -207,7 +203,7 @@ private:
             arguments.push_back(std::move(arg));
         }
     }
-    
+
     DynUniquePtr<Expr> parseCallExpr() {
         auto prim = parsePrimary();
         if (peek().kind != TokenKind::OpenParen) {
@@ -217,7 +213,7 @@ private:
         auto arguments = parseArgumentList(TokenKind::CloseParen);
         return allocate<CallExpr>(std::move(prim), std::move(arguments));
     }
-    
+
     DynUniquePtr<Expr> parsePrimary() {
         if (peek().kind == TokenKind::OpenParen) {
             eat();
@@ -233,7 +229,7 @@ private:
         }
         return nullptr;
     }
-    
+
     DynUniquePtr<Identifier> parseIdentifier() {
         auto tok = peek();
         if (tok.kind == TokenKind::Identifier) {
@@ -242,7 +238,7 @@ private:
         }
         return nullptr;
     }
-    
+
     DynUniquePtr<Literal> parseLiteral() {
         auto tok = peek();
         if (tok.kind == TokenKind::NumericLiteral) {
@@ -251,7 +247,7 @@ private:
         }
         return nullptr;
     }
-    
+
     DynUniquePtr<Statement> parseStmt() {
         if (peek().kind == TokenKind::Let) {
             return parseVarDecl();
@@ -268,7 +264,7 @@ private:
         }
         return nullptr;
     }
-    
+
     DynUniquePtr<VarDecl> parseVarDecl() {
         assert(peek().kind == TokenKind::Let);
         eat();
@@ -280,7 +276,7 @@ private:
         expect(eat(), TokenKind::Semicolon);
         return allocate<VarDecl>(std::move(name), std::move(initExpr));
     }
-    
+
     static std::optional<InstrStatement::Instruction> toInstr(TokenKind kind) {
         switch (kind) {
         case TokenKind::Print: return InstrStatement::Print;
@@ -288,7 +284,7 @@ private:
         default: return std::nullopt;
         }
     }
-    
+
     DynUniquePtr<InstrStatement> parseInstrStmt() {
         if (auto instr = toInstr(peek().kind)) {
             eat();
@@ -297,7 +293,7 @@ private:
         }
         return nullptr;
     }
-    
+
     DynUniquePtr<ExprStatement> parseExprStmt() {
         auto expr = parseExpr();
         if (!expr) {
@@ -306,38 +302,38 @@ private:
         expect(eat(), TokenKind::Semicolon);
         return allocate<ExprStatement>(std::move(expr));
     }
-    
+
     void expect(ASTNode const* node, std::string const& kind) {
         if (!node) {
             throw std::runtime_error("Expected " + kind);
         }
     }
-    
+
     void expect(Token token, TokenKind kind) {
         if (token.kind != kind) {
             throw std::runtime_error("Invalid token");
         }
     }
-    
+
     Token peek() {
         if (!current) {
             current = lexer.next();
         }
         return *current;
     }
-    
+
     Token eat() {
         if (current) {
             return *std::exchange(current, std::nullopt);
         }
         return lexer.next();
     }
-    
+
     Lexer lexer;
     std::optional<Token> current;
 };
 
-}
+} // namespace
 
 DynUniquePtr<Program> examples::parse(std::string source) {
     Parser parser(source);

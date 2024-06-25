@@ -1,10 +1,10 @@
 #include "terminal.hpp"
 
-#include <vector>
-#include <string>
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <cassert>
+#include <string>
+#include <vector>
 
 #include <termios.h>
 
@@ -17,59 +17,58 @@ using namespace examples;
 namespace {
 
 struct InputHistory {
-    void setCurrent(std::string line) {
-        lines.back() = std::move(line);
-    }
-    
+    void setCurrent(std::string line) { lines.back() = std::move(line); }
+
     void push(std::string line) {
         lines.back() = std::move(line);
         index = lines.size();
         lines.push_back("");
     }
-    
+
     std::string getLast() {
         if (index > 0) {
             --index;
         }
         return lines[index];
     }
-    
+
     std::string getPrev() {
         if (index < lines.size() - 1) {
             ++index;
         }
         return lines[index];
     }
-    
-    std::vector<std::string> lines = {""};
+
+    std::vector<std::string> lines = { "" };
     std::size_t index = 0;
 };
 
 struct Terminal {
     explicit Terminal(TerminalDelegate& delegate): delegate(delegate) {
-        tcgetattr(0, &info);          /* get current terminal attirbutes; 0 is the file descriptor for stdin */
-        info.c_lflag &= ~ICANON;      /* disable canonical mode */
-        info.c_cc[VMIN] = 1;          /* wait until at least one keystroke available */
-        info.c_cc[VTIME] = 0;         /* no timeout */
+        tcgetattr(0, &info); /* get current terminal attirbutes; 0 is the file
+                                descriptor for stdin */
+        info.c_lflag &= ~ICANON; /* disable canonical mode */
+        info.c_cc[VMIN] = 1;  /* wait until at least one keystroke available */
+        info.c_cc[VTIME] = 0; /* no timeout */
         tcsetattr(0, TCSANOW, &info); /* set immediately */
     }
-    
+
     ~Terminal() {
         tcgetattr(0, &info);
         info.c_lflag |= ICANON;
         tcsetattr(0, TCSANOW, &info);
     }
-    
+
     static void beginInput() {
         clearLine();
         format(Format::Blue, Format::Bold);
         std::cout << "> ";
         format(Format::Reset);
     }
-    
+
     void run() {
         beginInput();
-        while(true) {
+        while (true) {
             int ch = getchar();
             if (ch < 0) {
                 if (ferror(stdin)) {
@@ -91,7 +90,7 @@ struct Terminal {
             }
         }
     }
-    
+
     enum Codes {
         LeftArrow = 68,
         RightArrow = 67,
@@ -102,7 +101,7 @@ struct Terminal {
         Backspace = 127,
         Tab = 9,
     };
-    
+
     void handleInput(int input) {
         if (input == Escape) {
             escape = 2;
@@ -156,15 +155,12 @@ struct Terminal {
             inputBuffer = history.getPrev();
             position = (int)inputBuffer.size();
             break;
-        default:
-            break;
+        default: break;
         }
     }
-    
-    static void clearLine() {
-        printf("\33[2K\r");
-    }
-    
+
+    static void clearLine() { printf("\33[2K\r"); }
+
     TerminalDelegate& delegate;
     termios info;
     std::string inputBuffer;
@@ -173,7 +169,7 @@ struct Terminal {
     InputHistory history;
 };
 
-}
+} // namespace
 
 int examples::runTerminal(TerminalDelegate& delegate) {
     Terminal terminal(delegate);

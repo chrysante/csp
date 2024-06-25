@@ -7,7 +7,7 @@ namespace examples {
 
 struct TerminalDelegate {
     virtual void onInput(std::string input) {}
-    
+
     virtual bool complete(std::string& input) { return false; }
 };
 
