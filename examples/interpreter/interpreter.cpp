@@ -18,7 +18,7 @@ public:
     }
     
     void interpret(Statement const& stmt) {
-        fastvis::visit(stmt, [&](auto& stmt) { doInterpret(stmt); });
+        visit(stmt, [&](auto& stmt) { doInterpret(stmt); });
     }
     
     void doInterpret(EmptyStatement const&) {}
@@ -48,7 +48,7 @@ public:
     }
     
     double eval(Expr const& expr) {
-        return fastvis::visit(expr, [&](auto& expr) { return doEval(expr); });
+        return visit(expr, [&](auto& expr) { return doEval(expr); });
     }
     
     double doEval(Identifier const& ID) {
@@ -71,6 +71,7 @@ public:
         case Sub: return lhs - rhs;
         case Mul: return lhs * rhs;
         case Div: return lhs / rhs;
+        case Pow: return std::pow(lhs, rhs);
         }
     }
     
@@ -83,18 +84,32 @@ public:
         }
     }
     
+    template <int N>
+    double callImpl(CallExpr const& call, std::string_view functionName, auto fn) {
+        if (call.arguments().size() != N) {
+            throw std::runtime_error(
+                                     "Invalid number of arguments");
+        }
+        return [&]<size_t... I>(std::index_sequence<I...>) {
+            return fn(eval(*call.arguments()[I])...);
+        }(std::make_index_sequence<(size_t)N>{});
+    }
+
     double doEval(CallExpr const& expr) {
-        auto* ID = fastvis::dyncast<Identifier const*>(expr.callee());
+        auto* ID = dyncast<Identifier const*>(expr.callee());
         if (!ID) {
             throw std::runtime_error("Cannot call expression");
         }
-        if (ID->value() == "sqrt") {
-            if (expr.arguments().size() != 1) {
-                throw std::runtime_error(
-                                         "Invalid number of arguments for 'sqrt'");
-            }
-            return std::sqrt(eval(*expr.arguments().front()));
-        }
+#define IMPL(name, numArgs, nativeName) \
+if (ID->value() == name) {\
+return callImpl<numArgs>(expr, ID->value(), [](auto... args) { return nativeName(args...); }); \
+    }
+        IMPL("sqrt", 1, std::sqrt);
+        IMPL("pow", 2, std::pow);
+        IMPL("exp", 1, std::exp);
+        IMPL("exp2", 1, std::exp2);
+        IMPL("log", 1, std::log);
+        IMPL("log2", 1, std::log2);
         throw std::runtime_error("Use of unknown function: " + ID->value());
     }
     

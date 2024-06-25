@@ -1,6 +1,6 @@
 #  RTTI library for fast visitation, pattern matching and multiple dispatch
 
-This is a support library I've written for my compiler project. 
+This is a support library I originally wrote for my compiler project. 
 It is inspired by LLVM's RTTI, but goes a step further by allowing `std::variant`-like `visit` expressions. 
 
 The setup of the RTTI-data is a bit involved, so before scaring you off, 
@@ -73,7 +73,7 @@ Now, with two references to `Shapes`, we can again use `visit` to dispatch to th
     
     void collide(Shape const& a, Shape const& b) {
         fastvis::visit(a, b, [](auto const& a, auto const& b) {
-            collideImpl(a, b);
+            doCollide(a, b);
         });
     }
 
@@ -235,7 +235,7 @@ definition of visitors. No need to derive from a `Visitor` class and no double
 indirect call is required.
 
 On top of that, it makes multiple dispatch trivial. Simply pass multiple 
-arguments to `visit` and let the vistor take multiple parameters.  
+arguments to `visit` and let the visitor take multiple parameters.  
 
 ## Comparison to `std::visit(std::variant)`
 
@@ -245,7 +245,7 @@ stick to that.
 
 However, `std::variant` has a major drawback: It is 
 completely unstructured. A `std::variant<Dog, Cat, Dolphin, ...>` is a flat list
-of all contained types. All you can do to meaningfully access the contained 
+of all alternatives. All you can do to meaningfully access the contained 
 value, is `std::visit` or `std::get` and handle each type separately. 
 With this library you always have an `Base&` or `Base*` and you can access 
 the interface of the base class. Also you can define behaviours for base classes

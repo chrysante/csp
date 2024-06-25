@@ -20,6 +20,7 @@ enum class TokenKind {
     Sub,
     Mul,
     Div,
+    Pow,
     OpenParen,
     End
 };
@@ -113,6 +114,8 @@ public:
             return *tok;
         if (auto tok = matchChar('/', TokenKind::Div))
             return *tok;
+        if (auto tok = matchChar('^', TokenKind::Pow))
+            return *tok;
         throw std::runtime_error("Failed to scan token");
     }
 };
@@ -150,6 +153,7 @@ private:
         case TokenKind::Sub: return BinaryExpr::Sub;
         case TokenKind::Mul: return BinaryExpr::Mul;
         case TokenKind::Div: return BinaryExpr::Div;
+        case TokenKind::Pow: return BinaryExpr::Pow;
         default: return std::nullopt;
         }
     }

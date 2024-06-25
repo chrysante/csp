@@ -25,8 +25,26 @@ add_executable(fastvis-test test/fastvis.t.cpp)
 
 target_link_libraries(fastvis-test fastvis)
 
-add_executable(fastvis-examples 
-	examples/animals.cpp
-	examples/animals.hpp)
+add_executable(animals-example
+	examples/animals/animals.cpp
+	examples/animals/animals.hpp)
 
-target_link_libraries(fastvis-examples fastvis)
+target_link_libraries(animals-example fastvis)
+
+add_executable(parser-example
+	examples/interpreter/ast.hpp
+	examples/interpreter/interpreter.cpp
+	examples/interpreter/interpreter.hpp
+	examples/interpreter/parser.cpp
+	examples/interpreter/parser.hpp
+	examples/interpreter/terminal.cpp
+	examples/interpreter/terminal.hpp
+	examples/interpreter/utils.cpp
+	examples/interpreter/utils.hpp
+	examples/interpreter/main.cpp)
+
+target_include_directories(parser-example
+	PRIVATE
+	examples/interpreter)
+
+target_link_libraries(parser-example fastvis)

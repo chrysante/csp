@@ -122,7 +122,7 @@ namespace examples {
     
     class BinaryExpr: public Expr {
     public:
-        enum Operator { Add, Sub, Mul, Div };
+        enum Operator { Add, Sub, Mul, Div, Pow };
         
         explicit BinaryExpr(Operator op, DynUniquePtr<Expr> lhs,
                             DynUniquePtr<Expr> rhs):

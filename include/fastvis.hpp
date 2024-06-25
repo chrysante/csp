@@ -1057,7 +1057,10 @@ template <typename Base, typename... Args>
 struct DynUnion<Base, TypeList<Args...>> {
     template <typename, typename>
     friend struct DynUnion;
-
+    
+    static constexpr bool NothrowMoveConstructible = std::conjunction_v<std::is_nothrow_move_constructible<Args>...>;
+    static constexpr bool NothrowMoveAssignable = std::conjunction_v<std::is_nothrow_move_assignable<Args>...>;
+    
     template <typename T, typename Impl>
     static copy_cvref_t<Impl, T> getImpl(Impl&& impl) {
         // TODO: static assert that all of Args... that are derived from T have
@@ -1081,6 +1084,9 @@ struct UnionNoInit {};
 /// can contain subsets of the hierarchy
 template <impl::Dynamic Base>
 class dyn_union: impl::DynUnion<Base> {
+    using impl::DynUnion<Base>::NothrowMoveConstructible;
+    using impl::DynUnion<Base>::NothrowMoveAssignable;
+    
 public:
     /// \Returns `fastvis::visit(FWD(*this), FWD(f))`
     /// @{
@@ -1122,14 +1128,21 @@ public:
         std::construct_at(this, rhs);
         return *this;
     }
-    constexpr dyn_union(dyn_union&& rhs): dyn_union(impl::UnionNoInit{}) {
+    constexpr dyn_union(dyn_union&& rhs) noexcept(NothrowMoveConstructible) : dyn_union(impl::UnionNoInit{}) {
         rhs.visit([this]<typename T>(T& rhs) -> void {
             std::construct_at(&impl::unionGet<T>(this->impl), std::move(rhs));
         });
     }
-    dyn_union& operator=(dyn_union&& rhs) {
+    dyn_union& operator=(dyn_union&& rhs) noexcept(NothrowMoveConstructible &&
+                                                   NothrowMoveAssignable) {
         if (this == &rhs) {
-            return;
+            return *this;
+        }
+        if (get_rtti(base()) == get_rtti(rhs.base())) {
+            visit([&]<typename T>(T& This) {
+                This = std::move(rhs.get<T>());
+            });
+            return *this;
         }
         std::destroy_at(this);
         std::construct_at(this, std::move(rhs));
@@ -1140,13 +1153,16 @@ public:
     }
     /// @}
 
-    Base& base() & { return get<Base>(); }
-    Base const& base() const& { return get<Base>(); }
-    Base&& base() && { return std::move(*this).template get<Base>(); }
-    Base const&& base() const&& {
+    Base& base() & noexcept { return get<Base>(); }
+    Base const& base() const& noexcept { return get<Base>(); }
+    Base&& base() && noexcept { return std::move(*this).template get<Base>(); }
+    Base const&& base() const&& noexcept {
         return std::move(*this).template get<Base>();
     }
 
+    Base* operator->() noexcept { return &base(); }
+    Base const* operator->() const noexcept { return &base(); }
+    
     template <std::derived_from<Base> T>
     T& get() & {
         return impl::DynUnion<Base>::template getImpl<T>(this->impl);
@@ -1263,6 +1279,11 @@ inline constexpr auto filter =
         return cast<impl::copy_cvref_t<std::remove_reference_t<U>, T>&>(u);
     }
 });
+
+template <typename T>
+struct tag;
+
+
 
 } // namespace fastvis
 
