@@ -6,15 +6,23 @@ It is inspired by LLVM's RTTI, but goes a step further by allowing `std::variant
 The setup of the RTTI-data is a bit involved, so before scaring you off, 
 let me show you the benefits.
 
-### Pattern matching example
+## Pattern matching
+
+The central function in this library is `csp::visit`:
+
+    decltype(auto) visit(/* Args... */, auto&& visitor);
+
+`Args...` is a variable number of arguments of class types that are registered with CSP. The dynamic dispatch is performed based on the runtime type of the arguments.
+
+### Example
 
 Say you have a class hierarchy of animals and you want to map different kinds of animals to their habitats.
-This library allows you to use a pattern matching style `visit` expression for this task:
+`csp::visit` allows you to use a pattern matching style expression for this task:
 
-    #include "animals.h"
+    #include "animals.hpp"
 
-    std::string getHabitat(Animal const& animal) {
-        return fastvis::visit(animal, fastvis::overload{
+    constexpr std::string_view getHabitat(Animal const& animal) {
+        return csp::visit(animal, csp::overload{
             [](Mammal const&) { return "Land"; },
             [](Dolphin const&) { return "Water"; },
             [](Fish const&) { return "Water"; },
@@ -22,11 +30,12 @@ This library allows you to use a pattern matching style `visit` expression for t
         });
     }
 
-    assert(getHabitat(Cat{}) == "Land");
-    assert(getHabitat(Shark{}) == "Water");
-    assert(getHabitat(Sparrow{}) == "Air");
+    // Completely constexpr compatible
+    static_assert(getHabitat(Cat{}) == "Land");
+    static_assert(getHabitat(Shark{}) == "Water");
+    static_assert(getHabitat(Sparrow{}) == "Air");
 
-This is the `Animal` class hierarchy defined in `"animals.hpp"`
+This is the `Animal` class hierarchy defined in the imaginary `"animals.hpp"`
 
     Animal 
     ├─ Mammal
@@ -39,16 +48,31 @@ This is the `Animal` class hierarchy defined in `"animals.hpp"`
     └─ Bird
        ├─ Sparrow
        └─ Hawk
+       
+As you can see from the example, not every class in the hierarchy must be specified in the call to `visit`.   
+If several child classes have the same behaviour, 
+it is sufficient to define the behaviour for a base class. 
+This means we can only mention the `Fish` class to define the behaviour for `Goldfish` and  `Shark`, both of whom live in water. 
+The same goes for `Sparrow` and `Hawk`, whose behaviour is defined only for the `Bird` parent class.
+Most mammals live on land, so we define `Mammal` to return `"Land"`, but add a special case for `Dolphin`.
+
+---
+
+`visit()` takes a variable number of arguments to allow for multiple dispatch: 
     
-Note that we don't have to list every single class in the `visit` expression. If
-several child classes have the same behaviour, 
-it is sufficient to define the behaviour for a base class. This means we can 
-only mention the `Fish` class to define the behaviour for `Goldfish` and 
-`Shark`, both of whom live in water. 
-The same goes for `Sparrow` and `Hawk`, whose behaviour is defined only for 
-the `Bird` parent class.
-Most mammals live on land, so we define `Mammal` to return `"Land"`, but add a special case 
-for `Dolphin`.
+    void interact(Animal const& animal1, Animal const& animal2) {
+        csp::visit(animal1, animal2, csp::overload {
+            [](Cat const& cat, Dog const& dog) { std::cout << "The cat hisses at the dog.\n"; },
+            [](Dog const& dog, Cat const& cat) { std::cout << "The dog barks at the cat.\n"; },
+            [](Cat const& cat, Fish const& fish) { std::cout << "The cat stares at the fish.\n"; },
+            [](Dog const& dog, Bird const& bird) { std::cout << "The dog chases the bird.\n"; },
+            [](Animal const& a1, Animal const& a2) { std::cout << "The animals ignore each other.\n"; },
+        });
+    }
+    
+Here the visitor must be invocable with every combination of types derived from the static types of the arguments, in this case `Animal` and `Animal`. To simplify this, we simply provide a base case with 
+
+    [](Animal const& a1, Animal const& a2) { std::cout << "The animals ignore each other.\n"; },  
 
 ### Another classical OOP example: shapes!
 
@@ -72,7 +96,7 @@ We define collision behaviour for all combinations of shapes:
 Now, with two references to `Shapes`, we can again use `visit` to dispatch to the correct implementation:
     
     void collide(Shape const& a, Shape const& b) {
-        fastvis::visit(a, b, [](auto const& a, auto const& b) {
+        csp::visit(a, b, [](auto const& a, auto const& b) {
             doCollide(a, b);
         });
     }
@@ -95,23 +119,23 @@ The library provides three type inspection "operators": `isa`, `dyncast` and `ca
     
         Cat cat;
         Animal& animal = cat;
-        assert(fastvis::isa<Cat>(animal));
+        assert(csp::isa<Cat>(animal));
     
-- `dyncast` works just like `dynamic_cast`. 
+- `dyncast` works just like `dynamic_cast`, but doesn't require virtual functions. 
 Casting pointers returns `nullptr` if the cast failed, or a pointer to the derived type. Casting references throws `std::bad_cast` on failure.
     
         Cat cat;
         Animal* animal = &cat;
-        assert(fastvis::dyncast<Cat*>(animal) == &cat);
-        assert(fastvis::dyncast<Dog*>(animal) == nullptr);
+        assert(csp::dyncast<Cat*>(animal) == &cat);
+        assert(csp::dyncast<Dog*>(animal) == nullptr);
          
         try {
-            fastvis::dyncast<Dog&>(*animal);
+            csp::dyncast<Dog&>(*animal);
         }
         catch (std::bad_cast const&) {}
     
 - `cast` works like `dyncast`, except that a failed cast results in undefined behaviour. It should rarely be used and can be thought of as a replacement for `static_cast` to a derived type.
-If `NDEBUG` is defined (release builds), the library assumes that all `cast`'s succeed. Otherwise (in debug builds) the library asserts that `cast` succeeds. 
+If `NDEBUG` is defined (release builds), the library assumes that all `cast`'s succeed. In that case `cast` is exactly the same as a `static_cast`. Otherwise (in debug builds) the library asserts that `cast` succeeds. 
 
 ## Setup (the ugly part)
 
@@ -147,19 +171,19 @@ The code above is nice, but it doesn't come for free. For `isa`, `dyncast`, `cas
 
     // Bindings to the library, in the global namespace:
     //           - Type    - Enum ID           - Parent class   - Abstract or Concrete
-    FASTVIS_DEFINE(Animal,   AnimalID::Animal,   void,            Abstract)
-    FASTVIS_DEFINE(Mammal,   AnimalID::Mammal,   Animal,          Abstract)
-    FASTVIS_DEFINE(Cat,      AnimalID::Cat,      Mammal,          Concrete)
-    FASTVIS_DEFINE(Dog,      AnimalID::Dog,      Mammal,          Concrete)
-    FASTVIS_DEFINE(Dolphin,  AnimalID::Dolphin,  Mammal,          Concrete)
-    FASTVIS_DEFINE(Fish,     AnimalID::Fish,     Animal,          Abstract)
-    FASTVIS_DEFINE(Goldfish, AnimalID::Goldfish, Fish,            Concrete)
-    FASTVIS_DEFINE(Shark,    AnimalID::Shark,    Fish,            Concrete)
-    FASTVIS_DEFINE(Bird,     AnimalID::Bird,     Animal,          Abstract)
-    FASTVIS_DEFINE(Sparrow,  AnimalID::Sparrow,  Bird,            Concrete)
-    FASTVIS_DEFINE(Hawk,     AnimalID::Hawk,     Bird,            Concrete)
+    CSP_DEFINE(Animal,   AnimalID::Animal,   void,            Abstract)
+    CSP_DEFINE(Mammal,   AnimalID::Mammal,   Animal,          Abstract)
+    CSP_DEFINE(Cat,      AnimalID::Cat,      Mammal,          Concrete)
+    CSP_DEFINE(Dog,      AnimalID::Dog,      Mammal,          Concrete)
+    CSP_DEFINE(Dolphin,  AnimalID::Dolphin,  Mammal,          Concrete)
+    CSP_DEFINE(Fish,     AnimalID::Fish,     Animal,          Abstract)
+    CSP_DEFINE(Goldfish, AnimalID::Goldfish, Fish,            Concrete)
+    CSP_DEFINE(Shark,    AnimalID::Shark,    Fish,            Concrete)
+    CSP_DEFINE(Bird,     AnimalID::Bird,     Animal,          Abstract)
+    CSP_DEFINE(Sparrow,  AnimalID::Sparrow,  Bird,            Concrete)
+    CSP_DEFINE(Hawk,     AnimalID::Hawk,     Bird,            Concrete)
 
-The `FASTVIS_DEFINE` macro defines mappings for each class in the hierarchy to its base class, 
+The `CSP_DEFINE` macro defines mappings for each class in the hierarchy to its base class, 
 to its runtime type ID (and back), and it defines each class as abstract or concrete.
 
 This last part may seem strange, but it is required for `visit` expressions:
@@ -169,14 +193,16 @@ doesn't require the classes to have virtual functions, this cannot be implemente
 
 One more thing the library needs, is the actual runtime type information. This is achieved with the enum defined above.
 
-The base class of the hierarchy inherits from `fastvis::base_helper` to handle the RTTI:
+The base class of the hierarchy inherits from `csp::base_helper` to handle the RTTI:
 
-    class Animal: public fastvis::base_helper<Animal> {
+    class Animal: public csp::base_helper<Animal> {
     protected:
-        Animal(AnimalID ID): base_helper(ID) {}   
+        using base_helper::base_helper;
     };
     
-Inheriting from `fastvis::base_helper` is not required, you can also manage the RTTI yourself.
+The constructor of `csp::base_helper<Animal>` takes an `AnimalID` argument to setup the RTTI on construction. 
+    
+Inheriting from `csp::base_helper` is not required, you can also manage the RTTI yourself.
 To expose the type identifiers to the library, define a function `get_rtti` accessible via ADL:
     
     class Animal {
@@ -204,7 +230,7 @@ Then you can define all other classes as you normally would
         float m_size;   
     };
     
-Note that all concrete classes must pass their type ID to the constructor of 
+Note that all concrete classes must ensure that the type ID is setup correctly, usually by passing their type ID to the constructor of 
 their parent class
     
     class Cat: public Mammal {
@@ -216,7 +242,7 @@ their parent class
     
 ### Incomplete types
 
-`isa` works with incomplete types. This is why the parent class must be specified in the `FASTVIS_DEFINE` macro.
+`isa` works with incomplete types. This is why the parent class must be specified in the `CSP_DEFINE` macro.
 The alternative was that all classes in the hierarchy must be complete for `isa` and `dyncast` to work, which 
 can be bad for compile times, so I decided to put the burden on the user to specify the parent relationship here.
 The library asserts that the specified parent class is actually a parent class whenever possible.  
@@ -256,14 +282,14 @@ the interface of the base class. Also you can define behaviours for base classes
 Very similar to `std::variant`. 
 
 `isa` is implemented with a lookup table built at compile time. The information 
-needed to build the lookup table is defined by the user with the `FASTVIS_DEFINE` 
+needed to build the lookup table is defined by the user with the `CSP_DEFINE` 
 macro.
 
 `cast` and `dyncast` internally use `isa` followed by a `static_cast`. 
 
 Here are sketch implementations of the various functions: 
 
-    namespace fastvis {
+    namespace csp {
 
     template <typename Derived, typename Base>
     bool isa(Base const& object) { 
@@ -304,12 +330,14 @@ Here are sketch implementations of the various functions:
 ## Utilities
 
 Accessing polymorhic objects is one thing, storing them is another. 
-For storing polymorphic types in containers of `std::unique_ptr`, this library provides the `dyn_deleter` 
+For storing polymorphic types in containers of `std::unique_ptr`, this library provides the `csp::dyn_deleter` 
 class to safely `delete` allocated objects through pointers-to-base without virtual destructors. 
 
+It also provides a typedef `csp::unique_ptr<T>` for `std::unique_ptr<T, csp::dyn_deleter>`.   
+
     {
-        std::vector<std::unique_ptr<Animal, fastvis::dyn_deleter>> v;
-        v.push_back(std::unique_ptr<Animal, fastvis::dyn_deleter>(new Dolphin()));
+        std::vector<csp::unique_ptr<Animal>> v;
+        v.push_back(csp::make_unique<Dolphin>());
     } // dyn_deleter visits the most derived type and calls `delete` on it
     
 Note that if the base class has a virtual destructor, this is not required, and you can use a normal `std::unique_ptr` 
@@ -317,8 +345,10 @@ to store objects. `dyn_deleter` allows you to elide the vtable pointer from your
 
 If you don't want to dynamically allocate your objects, you can use the `dyn_union` template to create a union of all types in a class hierarchy:
 
-    fastvis::dyn_union<Animal> animal = Cat{};
-    static_assert(sizeof(fastvis::dyn_union<Animal>) == std::max({ sizeof(Cat), sizeof(Dog), ... }));
+    csp::dyn_union<Animal> animal = Cat{};
+    static_assert(sizeof(csp::dyn_union<Animal>) == std::max({ sizeof(Cat), sizeof(Dog), ... }));
+
+---
 
 You can always use an unqualified call to `get_rtti` to get the runtime type ID of an object:
     
@@ -326,15 +356,17 @@ You can always use an unqualified call to `get_rtti` to get the runtime type ID 
     Animal& animal = cat;
     assert(get_rtti(animal) == AnimalID::Cat);
 
+---
+
 In my projects where I use this library, I bring the operators into my project scope so I don't have to qualify calls to the operators:
  
-    #include <fastvis.hpp>
+    #include <csp.hpp>
  
     namespace MyProject {
-         using fastvis::isa;
-         using fastvis::dyncast;
-         using fastvis::cast;
-         using fastvis::visit;
+         using csp::isa;
+         using csp::dyncast;
+         using csp::cast;
+         using csp::visit;
     }
 
 ### Ranges
@@ -344,20 +376,26 @@ A few range utilities are provided:
     std::vector<Animal*> animals = /* ... */;
     
     // Filters the birds and casts the range elements to `Bird*`
-    for (Bird* bird: animals | fastvis::filter<Bird>) {
+    for (Bird* bird: animals | csp::filter<Bird>) {
     
     }
+    
+This is essentially the same as 
 
-The `isa`, `dyncast` and `cast` operators are function objects, so they works nicely with the `<ranges>` and `<algorithm>` libraries:
+    animals | std::views::filter<csp::isa<Bird>> | std::views::transform<csp::cast<Bird*>>
+    
+but more compact.
+
+The `isa`, `dyncast` and `cast` operators are function objects, so they work nicely with the `<ranges>` and `<algorithm>` libraries:
  
     std::vector<Animal*> animals = /* ... */;
     
     // Find a cat in `animals`
-    auto itr = std::find_if(animals.begin(), animals.end(), fastvis::isa<Cat>);
+    auto itr = std::find_if(animals.begin(), animals.end(), csp::isa<Cat>);
     
-    if (std::ranges::all_of(animals, fastvis::isa<Mammal>)) {
+    if (std::ranges::all_of(animals, csp::isa<Mammal>)) {
         // All animals are mammals
     }
     
     // View of `Bird` pointers (possibly null)
-    auto birds = animals | std::views::transform(fastvis::dyncast<Bird*>);
+    auto birds = animals | std::views::transform(csp::dyncast<Bird*>);

@@ -3,16 +3,16 @@
 #include <array>
 #include <iostream>
 #include <random>
-#include <string>
+#include <string_view>
 
 #ifdef __GNUC__
 #include <cxxabi.h>
 #endif
 
 using namespace examples;
-using namespace fastvis;
+using namespace csp;
 
-std::string getHabitat(Animal const& animal) {
+constexpr std::string_view getHabitat(Animal const& animal) {
     // clang-format off
     return visit(animal, overload{
         [](Mammal const&) { return "Land"; },
@@ -21,6 +21,10 @@ std::string getHabitat(Animal const& animal) {
         [](Bird const&) { return "Air"; },
     }); // clang-format on
 }
+
+static_assert(getHabitat(Cat{}) == "Land");
+static_assert(getHabitat(Shark{}) == "Water");
+static_assert(getHabitat(Sparrow{}) == "Air");
 
 // `DynUniquePtr` and `makeDynUnique` are not provided by the library because
 // they are quite specific and can easily be defined by the user
@@ -36,19 +40,14 @@ DynUniquePtr<T> makeDynUnique(Args&&... args) {
 
 static DynUniquePtr<Animal> generateAnimal() {
     static std::mt19937 rng(std::random_device{}());
-    static std::array<std::string, 10> const names = {
-        "Willie", "Laverne", "Patty", "Alfred",      "Bradley",
-        "Rose",   "Tammy",   "Eddie", "Christopher", "Everett",
-    };
-    std::uniform_int_distribution<size_t> nameDist(0, names.size() - 1);
     switch (std::uniform_int_distribution<>(0, 6)(rng)) {
-    case 0: return makeDynUnique<Cat>(names[nameDist(rng)]);
-    case 1: return makeDynUnique<Dog>(names[nameDist(rng)]);
-    case 2: return makeDynUnique<Dolphin>(names[nameDist(rng)]);
-    case 3: return makeDynUnique<Goldfish>(names[nameDist(rng)]);
-    case 4: return makeDynUnique<Shark>(names[nameDist(rng)]);
-    case 5: return makeDynUnique<Sparrow>(names[nameDist(rng)]);
-    case 6: return makeDynUnique<Hawk>(names[nameDist(rng)]);
+    case 0: return makeDynUnique<Cat>();
+    case 1: return makeDynUnique<Dog>();
+    case 2: return makeDynUnique<Dolphin>();
+    case 3: return makeDynUnique<Goldfish>();
+    case 4: return makeDynUnique<Shark>();
+    case 5: return makeDynUnique<Sparrow>();
+    case 6: return makeDynUnique<Hawk>();
     default: assert(false);
     }
 }
@@ -70,13 +69,13 @@ static std::string getTypeName(Animal const& animal) {
 static void printHabitats() {
     for (int i = 0; i < 10; ++i) {
         auto animal = generateAnimal();
-        std::cout << animal->name() << " is a " << getTypeName(*animal)
-                  << " who lives in: " << getHabitat(*animal) << std::endl;
+        std::cout << getTypeName(*animal)
+                  << " lives in: " << getHabitat(*animal) << std::endl;
     }
 }
 
 static void showcaseOperators() {
-    Cat cat("Harald");
+    Cat cat;
     Animal& animal = cat;
     assert(isa<Cat>(animal));
     assert(dyncast<Cat*>(&animal) == &cat);
@@ -90,15 +89,29 @@ static void showcaseOperators() {
     }
 }
 
-static void showcaseUnion() {
-    fastvis::dyn_union<Animal> animal = Cat("Herbert");
-    std::cout << animal->name() << std::endl;
+void showcaseMultipleDispatch(Animal const& animal1, Animal const& animal2) {
+    visit(animal1, animal2,
+          overload{
+              [](Cat const& cat, Dog const& dog) {
+        std::cout << "The cat hisses at the dog.\n";
+    },
+              [](Dog const& dog, Cat const& cat) {
+        std::cout << "The dog barks at the cat.\n";
+    },
+              [](Cat const& cat, Fish const& fish) {
+        std::cout << "The cat stares at the fish.\n";
+    },
+              [](Dog const& dog, Bird const& bird) {
+        std::cout << "The dog chases the bird.\n";
+    },
+              [](Animal const& a1, Animal const& a2) {
+        std::cout << "The animals ignore each other.\n";
+    },
+          });
 }
 
 int main() {
-    assert(getHabitat(Cat("Chloe")) == "Land");
-    assert(getHabitat(Shark("Sophia")) == "Water");
-    assert(getHabitat(Sparrow("Marcus")) == "Air");
     printHabitats();
     showcaseOperators();
+    showcaseMultipleDispatch(Cat(), Goldfish());
 }

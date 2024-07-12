@@ -1,9 +1,9 @@
-#define FASTVIS_IMPL_ENABLE_DEBUGGING
+#define CSP_IMPL_ENABLE_DEBUGGING
 
 #include <functional>
 #include <vector>
 
-#include <fastvis.hpp>
+#include <csp.hpp>
 
 /// # Enum reflection tests
 
@@ -46,48 +46,46 @@ struct StrangeScope {
         }                                                                      \
     } while (0)
 
-static_assert(!fastvis::impl::enumIsValid<TestEnum, -2>());
-static_assert(!fastvis::impl::enumIsValid<TestEnum, -1>());
-static_assert(fastvis::impl::enumIsValid<TestEnum, TestEnum::A>());
-static_assert(fastvis::impl::enumIsValid<TestEnum, TestEnum::B>());
-static_assert(fastvis::impl::enumIsValid<TestEnum, TestEnum::C>());
-static_assert(!fastvis::impl::enumIsValid<TestEnum, 3>());
-static_assert(!fastvis::impl::enumIsValid<TestEnum, 4>());
+static_assert(!csp::impl::enumIsValid<TestEnum, -2>());
+static_assert(!csp::impl::enumIsValid<TestEnum, -1>());
+static_assert(csp::impl::enumIsValid<TestEnum, TestEnum::A>());
+static_assert(csp::impl::enumIsValid<TestEnum, TestEnum::B>());
+static_assert(csp::impl::enumIsValid<TestEnum, TestEnum::C>());
+static_assert(!csp::impl::enumIsValid<TestEnum, 3>());
+static_assert(!csp::impl::enumIsValid<TestEnum, 4>());
 
-static_assert(fastvis::impl::enumRangeFirst<TestEnum>() == 0);
-static_assert(fastvis::impl::enumRangeLast<TestEnum>() == 3);
-static_assert(fastvis::impl::enumCount<TestEnum>() == 3);
+static_assert(csp::impl::enumRangeFirst<TestEnum>() == 0);
+static_assert(csp::impl::enumRangeLast<TestEnum>() == 3);
+static_assert(csp::impl::enumCount<TestEnum>() == 3);
 
-static_assert(!fastvis::impl::enumIsValid<XY::TestEnumNegative, -5>());
-static_assert(!fastvis::impl::enumIsValid<XY::TestEnumNegative, -4>());
-static_assert(fastvis::impl::enumIsValid<XY::TestEnumNegative,
-                                         XY::TestEnumNegative::A>());
-static_assert(fastvis::impl::enumIsValid<XY::TestEnumNegative,
-                                         XY::TestEnumNegative::B>());
-static_assert(fastvis::impl::enumIsValid<XY::TestEnumNegative,
-                                         XY::TestEnumNegative::C>());
-static_assert(!fastvis::impl::enumIsValid<XY::TestEnumNegative, 0>());
-static_assert(!fastvis::impl::enumIsValid<XY::TestEnumNegative, 1>());
-
-static_assert(fastvis::impl::enumRangeFirst<XY::TestEnumNegative, -128>() ==
-              -3);
-static_assert(fastvis::impl::enumRangeLast<XY::TestEnumNegative, -128>() == 0);
-static_assert(fastvis::impl::enumCount<XY::TestEnumNegative>() == 3);
-
-static_assert(fastvis::impl::enumRangeFirst<Unscoped>() == 0);
-static_assert(fastvis::impl::enumRangeLast<Unscoped>() == 3);
-static_assert(fastvis::impl::enumCount<Unscoped>() == 3);
-
+static_assert(!csp::impl::enumIsValid<XY::TestEnumNegative, -5>());
+static_assert(!csp::impl::enumIsValid<XY::TestEnumNegative, -4>());
 static_assert(
-    fastvis::impl::enumRangeFirst<StrangeScope<[]<size_t I>() {}>::E>() == 0);
+    csp::impl::enumIsValid<XY::TestEnumNegative, XY::TestEnumNegative::A>());
 static_assert(
-    fastvis::impl::enumRangeLast<StrangeScope<[]<size_t I>() {}>::E>() == 3);
-static_assert(fastvis::impl::enumCount<StrangeScope<[]<size_t I>() {}>::E>() ==
+    csp::impl::enumIsValid<XY::TestEnumNegative, XY::TestEnumNegative::B>());
+static_assert(
+    csp::impl::enumIsValid<XY::TestEnumNegative, XY::TestEnumNegative::C>());
+static_assert(!csp::impl::enumIsValid<XY::TestEnumNegative, 0>());
+static_assert(!csp::impl::enumIsValid<XY::TestEnumNegative, 1>());
+
+static_assert(csp::impl::enumRangeFirst<XY::TestEnumNegative, -128>() == -3);
+static_assert(csp::impl::enumRangeLast<XY::TestEnumNegative, -128>() == 0);
+static_assert(csp::impl::enumCount<XY::TestEnumNegative>() == 3);
+
+static_assert(csp::impl::enumRangeFirst<Unscoped>() == 0);
+static_assert(csp::impl::enumRangeLast<Unscoped>() == 3);
+static_assert(csp::impl::enumCount<Unscoped>() == 3);
+
+static_assert(csp::impl::enumRangeFirst<StrangeScope<[]<size_t I>() {}>::E>() ==
+              0);
+static_assert(csp::impl::enumRangeLast<StrangeScope<[]<size_t I>() {}>::E>() ==
               3);
+static_assert(csp::impl::enumCount<StrangeScope<[]<size_t I>() {}>::E>() == 3);
 
 /// # Index expansion tests
 
-namespace fastvis::impl {
+namespace csp::impl {
 
 template <typename T, size_t N>
 constexpr bool operator==(Array<T, N> const& A, Array<T, N> const& B) {
@@ -99,10 +97,10 @@ constexpr bool operator==(Array<T, N> const& A, Array<T, N> const& B) {
     return true;
 }
 
-} // namespace fastvis::impl
+} // namespace csp::impl
 
 static void testInternals() {
-    using namespace fastvis::impl;
+    using namespace csp::impl;
     // Single dimensional case
     static_assert(flattenIndex<1>({ 0 }, { 3 }) == 0);
     static_assert(expandIndex<1>(0, { 3 }) == Array<size_t, 1>{ 0 });
@@ -175,15 +173,15 @@ struct Leopard;
 
 } // namespace
 
-FASTVIS_DEFINE(Animal, ID::Animal, void, Abstract)
-FASTVIS_DEFINE(Cetacea, ID::Cetacea, Animal, Abstract)
-FASTVIS_DEFINE(Whale, ID::Whale, Cetacea, Concrete)
-FASTVIS_DEFINE(Dolphin, ID::Dolphin, Cetacea, Concrete)
-FASTVIS_DEFINE(Leopard, ID::Leopard, Animal, Concrete)
+CSP_DEFINE(Animal, ID::Animal, void, Abstract)
+CSP_DEFINE(Cetacea, ID::Cetacea, Animal, Abstract)
+CSP_DEFINE(Whale, ID::Whale, Cetacea, Concrete)
+CSP_DEFINE(Dolphin, ID::Dolphin, Cetacea, Concrete)
+CSP_DEFINE(Leopard, ID::Leopard, Animal, Concrete)
 
 namespace {
 
-class Animal: public fastvis::base_helper<Animal> {
+class Animal: public csp::base_helper<Animal> {
 protected:
     constexpr Animal(ID id): base_helper(id) {}
 };
@@ -206,30 +204,30 @@ static void testIsaAndDyncast() {
     constexpr Animal const* animal = &whale;
 
     /// Pointers
-    static_assert(fastvis::isa<Animal>(animal));
-    static_assert(fastvis::isa<Cetacea>(animal));
-    static_assert(fastvis::isa<Whale>(animal));
-    static_assert(!fastvis::isa<Leopard>(animal));
-    static_assert(!fastvis::isa<Dolphin>(animal));
+    static_assert(csp::isa<Animal>(animal));
+    static_assert(csp::isa<Cetacea>(animal));
+    static_assert(csp::isa<Whale>(animal));
+    static_assert(!csp::isa<Leopard>(animal));
+    static_assert(!csp::isa<Dolphin>(animal));
 
     /// References
-    static_assert(fastvis::isa<Animal>(*animal));
-    static_assert(fastvis::isa<Cetacea>(*animal));
-    static_assert(fastvis::isa<Whale>(*animal));
-    static_assert(!fastvis::isa<Leopard>(*animal));
-    static_assert(!fastvis::isa<Dolphin>(*animal));
+    static_assert(csp::isa<Animal>(*animal));
+    static_assert(csp::isa<Cetacea>(*animal));
+    static_assert(csp::isa<Whale>(*animal));
+    static_assert(!csp::isa<Leopard>(*animal));
+    static_assert(!csp::isa<Dolphin>(*animal));
 
     /// IDs
-    static_assert(fastvis::isa<Animal>(ID::Whale));
-    static_assert(fastvis::isa<Cetacea>(ID::Whale));
-    static_assert(fastvis::isa<Whale>(ID::Whale));
-    static_assert(!fastvis::isa<Leopard>(ID::Whale));
-    static_assert(!fastvis::isa<Dolphin>(ID::Whale));
+    static_assert(csp::isa<Animal>(ID::Whale));
+    static_assert(csp::isa<Cetacea>(ID::Whale));
+    static_assert(csp::isa<Whale>(ID::Whale));
+    static_assert(!csp::isa<Leopard>(ID::Whale));
+    static_assert(!csp::isa<Dolphin>(ID::Whale));
 
     /// Dyncast for good measure
-    static_assert(fastvis::dyncast<Animal const*>(animal));
-    static_assert(fastvis::dyncast<Cetacea const*>(animal));
-    static_assert(fastvis::dyncast<Whale const*>(animal));
+    static_assert(csp::dyncast<Animal const*>(animal));
+    static_assert(csp::dyncast<Cetacea const*>(animal));
+    static_assert(csp::dyncast<Whale const*>(animal));
 }
 
 // Now we define the remaining types
@@ -253,7 +251,7 @@ static void testVisitation() {
     /* Return void */ {
         bool foundDolphin = false;
         // clang-format off
-        fastvis::visit((Cetacea&)d, fastvis::overload{
+        csp::visit((Cetacea&)d, csp::overload{
             [&](Dolphin const&) {
                 foundDolphin = true;
             },
@@ -264,7 +262,7 @@ static void testVisitation() {
     /* More cases */ {
         bool foundCetaceaAndLeopard = false;
         // clang-format off
-        fastvis::visit((Cetacea&)d, (Animal const&)l, fastvis::overload{
+        csp::visit((Cetacea&)d, (Animal const&)l, csp::overload{
             [&](Cetacea const&, Leopard const&) {
                 foundCetaceaAndLeopard = true;
             },
@@ -275,7 +273,7 @@ static void testVisitation() {
     }
     /* Return type deduced as int */ {
         // clang-format off
-        auto res = fastvis::visit((Cetacea&)d, (Animal const&)l, fastvis::overload{
+        auto res = csp::visit((Cetacea&)d, (Animal const&)l, csp::overload{
             [&](Cetacea const&, Leopard const&) {
                 return 1;
             },
@@ -291,7 +289,7 @@ static void testVisitation() {
         Derived obj;
 
         // clang-format off
-        auto& res = fastvis::visit((Cetacea&)d, (Animal const&)l, fastvis::overload{
+        auto& res = csp::visit((Cetacea&)d, (Animal const&)l, csp::overload{
             [&](Cetacea const&, Leopard const&) -> Derived& {
                 return obj;
             },
@@ -310,7 +308,7 @@ static constexpr bool constexprVisitationReturnVoid() {
     Dolphin d;
     bool foundDolphin = false;
     // clang-format off
-    fastvis::visit((Cetacea&)d, fastvis::overload{
+    csp::visit((Cetacea&)d, csp::overload{
         [&](Dolphin const&) { foundDolphin = true; },
         [&](Animal const&) {}
     }); // clang-format on
@@ -322,12 +320,11 @@ static_assert(constexprVisitationReturnVoid());
 static constexpr int constexprVisitationMultipleArguments() {
     Dolphin d;
     Leopard l;
-    return fastvis::visit((Cetacea&)d, (Animal const&)l,
-                          fastvis::overload{
-                              [&](Cetacea const&, Leopard const&) {
+    return csp::visit((Cetacea&)d, (Animal const&)l,
+                      csp::overload{ [&](Cetacea const&, Leopard const&) {
         return 1;
     }, [&](Cetacea const&, Animal const&) { return '\0'; },
-                              [&](Animal const&, Animal const&) {
+                                     [&](Animal const&, Animal const&) {
         return (unsigned short)0;
     } }); // clang-format on
 }
@@ -393,11 +390,11 @@ struct RDerived: Base {
 
 } // namespace
 
-FASTVIS_DEFINE(Base, Type::Base, void, Abstract);
-FASTVIS_DEFINE(LDerivedA, Type::LDerivedA, Base, Concrete);
-FASTVIS_DEFINE(LDerivedB, Type::LDerivedB, LDerivedA, Concrete);
-FASTVIS_DEFINE(LDerivedC, Type::LDerivedC, LDerivedB, Concrete);
-FASTVIS_DEFINE(RDerived, Type::RDerived, Base, Concrete);
+CSP_DEFINE(Base, Type::Base, void, Abstract);
+CSP_DEFINE(LDerivedA, Type::LDerivedA, Base, Concrete);
+CSP_DEFINE(LDerivedB, Type::LDerivedB, LDerivedA, Concrete);
+CSP_DEFINE(LDerivedC, Type::LDerivedC, LDerivedB, Concrete);
+CSP_DEFINE(RDerived, Type::RDerived, Base, Concrete);
 
 template <typename To, typename From>
 static bool canDyncast(From&& from) {
@@ -407,7 +404,7 @@ static bool canDyncast(From&& from) {
 static void testVisit() {
     LDerivedA a;
     Base& base = a;
-    assert(fastvis::visit(base, [](Base& base) { return base.type(); }) ==
+    assert(csp::visit(base, [](Base& base) { return base.type(); }) ==
            Type::LDerivedA);
 }
 
@@ -416,12 +413,12 @@ static void testVisitAbstract() {
     Base& base = a;
     int i = 0;
     /// Primarily testing successful compilation here.
-    /// We wrap \p fastvis::overload in a lambda taking \p auto& to test that
+    /// We wrap \p csp::overload in a lambda taking \p auto& to test that
     /// the function doesn't get called with non-sensible arguments even if
     /// semantically possible.
-    fastvis::visit(base, [&](auto& b) {
-        return fastvis::overload{ [&](LDerivedA&) { i = 1; },
-                                  [&](RDerived&) { i = 2; } }(b);
+    csp::visit(base, [&](auto& b) {
+        return csp::overload{ [&](LDerivedA&) { i = 1; },
+                              [&](RDerived&) { i = 2; } }(b);
     });
     assert(i == 1);
 }
@@ -445,7 +442,7 @@ static void testVisitReturningReference() {
     LDerivedA a;
     Base& base = a;
     auto f = [&, i = 0](Base&) -> auto& { return i; };
-    decltype(auto) result = fastvis::visit(base, f);
+    decltype(auto) result = csp::visit(base, f);
     assert(T<decltype(result)> == T<int const&>);
 }
 
@@ -456,7 +453,7 @@ static void testVisitReturningReferenceToHierarchy() {
     Base& base = a;
     /* Reference */ {
         decltype(auto) result =
-            fastvis::visit(base, [b = B{}]<typename T>(T&) -> auto& {
+            csp::visit(base, [b = B{}]<typename T>(T&) -> auto& {
             if constexpr (std::is_same_v<T, LDerivedB>) {
                 return static_cast<A const&>(b);
             }
@@ -467,7 +464,7 @@ static void testVisitReturningReferenceToHierarchy() {
         assert(T<decltype(result)> == T<A const&>);
     }
     /* Pointer */ {
-        auto* result = fastvis::visit(base, [b = B{}]<typename T>(T&) -> auto* {
+        auto* result = csp::visit(base, [b = B{}]<typename T>(T&) -> auto* {
             if constexpr (std::is_same_v<T, LDerivedB>) {
                 return static_cast<A const*>(&b);
             }
@@ -481,7 +478,7 @@ static void testVisitReturningReferenceToHierarchy() {
 
 static void testVisitSubtree() {
     auto dispatcher = [](LDerivedA& x) {
-        return visit(x, fastvis::overload{
+        return visit(x, csp::overload{
                             [](LDerivedA& a) { return 0; },
                             [](LDerivedC& c) { return 1; },
                         });
@@ -496,10 +493,10 @@ static void testVisitSubtree() {
 
 static void testVisitSubtree2() {
     auto dispatcher = [](LDerivedA& x) {
-        return fastvis::visit(x, fastvis::overload{
-                                     [](LDerivedA& a) { return 0; },
-                                     [](LDerivedB& b) { return 1; },
-                                 });
+        return csp::visit(x, csp::overload{
+                                 [](LDerivedA& a) { return 0; },
+                                 [](LDerivedB& b) { return 1; },
+                             });
     };
     LDerivedA a;
     LDerivedB b;
@@ -511,13 +508,13 @@ static void testVisitSubtree2() {
 
 static void testMDVisit() {
     auto dispatcher = [](Base& b, LDerivedA& x) {
-        return fastvis::visit(b, x,
-                              fastvis::overload{
-                                  [](Base&, LDerivedA& a) { return 0; },
-                                  [](Base&, LDerivedB& b) { return 1; },
-                                  [](LDerivedB&, LDerivedA& a) { return 2; },
-                                  [](LDerivedB&, LDerivedB& b) { return 3; },
-                              });
+        return csp::visit(b, x,
+                          csp::overload{
+                              [](Base&, LDerivedA& a) { return 0; },
+                              [](Base&, LDerivedB& b) { return 1; },
+                              [](LDerivedB&, LDerivedA& a) { return 2; },
+                              [](LDerivedB&, LDerivedB& b) { return 3; },
+                          });
     };
     LDerivedA a;
     LDerivedB b;
@@ -533,101 +530,101 @@ static void testMDVisit() {
 static void testIsaAndDyncast2() {
     LDerivedA la;
 
-    assert(fastvis::isa<Base>(la));
-    assert(fastvis::isa<LDerivedA>(la));
-    assert(!fastvis::isa<LDerivedB>(la));
-    assert(!fastvis::isa<RDerived>(la));
+    assert(csp::isa<Base>(la));
+    assert(csp::isa<LDerivedA>(la));
+    assert(!csp::isa<LDerivedB>(la));
+    assert(!csp::isa<RDerived>(la));
 
-    assert(fastvis::dyncast<Base*>(&la) != nullptr);
-    assert(fastvis::dyncast<LDerivedA*>(&la) != nullptr);
-    assert(fastvis::dyncast<LDerivedB*>(&la) == nullptr);
+    assert(csp::dyncast<Base*>(&la) != nullptr);
+    assert(csp::dyncast<LDerivedA*>(&la) != nullptr);
+    assert(csp::dyncast<LDerivedB*>(&la) == nullptr);
     assert(!canDyncast<RDerived*>(&la));
 
-    CHECK_NOTHROW(fastvis::dyncast<Base&>(la));
-    CHECK_NOTHROW(fastvis::dyncast<LDerivedA&>(la));
-    CHECK_THROWS(fastvis::dyncast<LDerivedB&>(la));
+    CHECK_NOTHROW(csp::dyncast<Base&>(la));
+    CHECK_NOTHROW(csp::dyncast<LDerivedA&>(la));
+    CHECK_THROWS(csp::dyncast<LDerivedB&>(la));
 
     Base const* base = &la;
 
-    assert(fastvis::isa<Base>(*base));
-    assert(fastvis::isa<LDerivedA>(*base));
-    assert(!fastvis::isa<LDerivedB>(*base));
-    assert(!fastvis::isa<RDerived>(*base));
+    assert(csp::isa<Base>(*base));
+    assert(csp::isa<LDerivedA>(*base));
+    assert(!csp::isa<LDerivedB>(*base));
+    assert(!csp::isa<RDerived>(*base));
 
-    assert(fastvis::dyncast<Base const*>(base) != nullptr);
-    assert(fastvis::dyncast<LDerivedA const*>(base) != nullptr);
-    assert(fastvis::dyncast<LDerivedB const*>(base) == nullptr);
-    assert(fastvis::dyncast<RDerived const*>(base) == nullptr);
+    assert(csp::dyncast<Base const*>(base) != nullptr);
+    assert(csp::dyncast<LDerivedA const*>(base) != nullptr);
+    assert(csp::dyncast<LDerivedB const*>(base) == nullptr);
+    assert(csp::dyncast<RDerived const*>(base) == nullptr);
 
-    CHECK_NOTHROW(fastvis::dyncast<Base const&>(*base));
-    CHECK_NOTHROW(fastvis::dyncast<LDerivedA const&>(*base));
-    CHECK_THROWS(fastvis::dyncast<LDerivedB const&>(*base));
-    CHECK_THROWS(fastvis::dyncast<RDerived const&>(*base));
+    CHECK_NOTHROW(csp::dyncast<Base const&>(*base));
+    CHECK_NOTHROW(csp::dyncast<LDerivedA const&>(*base));
+    CHECK_THROWS(csp::dyncast<LDerivedB const&>(*base));
+    CHECK_THROWS(csp::dyncast<RDerived const&>(*base));
 
     LDerivedB lb;
 
-    assert(fastvis::isa<Base>(lb));
-    assert(fastvis::isa<LDerivedA>(lb));
-    assert(fastvis::isa<LDerivedB>(lb));
-    assert(!fastvis::isa<RDerived>(lb));
+    assert(csp::isa<Base>(lb));
+    assert(csp::isa<LDerivedA>(lb));
+    assert(csp::isa<LDerivedB>(lb));
+    assert(!csp::isa<RDerived>(lb));
 
-    assert(fastvis::dyncast<Base*>(&lb) != nullptr);
-    assert(fastvis::dyncast<LDerivedA*>(&lb) != nullptr);
-    assert(fastvis::dyncast<LDerivedB*>(&lb) != nullptr);
+    assert(csp::dyncast<Base*>(&lb) != nullptr);
+    assert(csp::dyncast<LDerivedA*>(&lb) != nullptr);
+    assert(csp::dyncast<LDerivedB*>(&lb) != nullptr);
     assert(!canDyncast<RDerived*>(&lb));
 
-    CHECK_NOTHROW(fastvis::dyncast<Base&>(lb));
-    CHECK_NOTHROW(fastvis::dyncast<LDerivedA&>(lb));
-    CHECK_NOTHROW(fastvis::dyncast<LDerivedB&>(lb));
+    CHECK_NOTHROW(csp::dyncast<Base&>(lb));
+    CHECK_NOTHROW(csp::dyncast<LDerivedA&>(lb));
+    CHECK_NOTHROW(csp::dyncast<LDerivedB&>(lb));
 
     base = &lb;
 
-    assert(fastvis::isa<Base>(*base));
-    assert(fastvis::isa<LDerivedA>(*base));
-    assert(fastvis::isa<LDerivedB>(*base));
-    assert(!fastvis::isa<RDerived>(*base));
+    assert(csp::isa<Base>(*base));
+    assert(csp::isa<LDerivedA>(*base));
+    assert(csp::isa<LDerivedB>(*base));
+    assert(!csp::isa<RDerived>(*base));
 
-    assert(fastvis::dyncast<Base const*>(base) != nullptr);
-    assert(fastvis::dyncast<LDerivedA const*>(base) != nullptr);
-    assert(fastvis::dyncast<LDerivedB const*>(base) != nullptr);
-    assert(fastvis::dyncast<RDerived const*>(base) == nullptr);
+    assert(csp::dyncast<Base const*>(base) != nullptr);
+    assert(csp::dyncast<LDerivedA const*>(base) != nullptr);
+    assert(csp::dyncast<LDerivedB const*>(base) != nullptr);
+    assert(csp::dyncast<RDerived const*>(base) == nullptr);
 
-    CHECK_NOTHROW(fastvis::dyncast<Base const&>(*base));
-    CHECK_NOTHROW(fastvis::dyncast<LDerivedA const&>(*base));
-    CHECK_NOTHROW(fastvis::dyncast<LDerivedB const&>(*base));
-    CHECK_THROWS(fastvis::dyncast<RDerived const&>(*base));
+    CHECK_NOTHROW(csp::dyncast<Base const&>(*base));
+    CHECK_NOTHROW(csp::dyncast<LDerivedA const&>(*base));
+    CHECK_NOTHROW(csp::dyncast<LDerivedB const&>(*base));
+    CHECK_THROWS(csp::dyncast<RDerived const&>(*base));
 
     RDerived r;
 
-    assert(fastvis::isa<Base>(r));
-    assert(!fastvis::isa<LDerivedA>(r));
-    assert(!fastvis::isa<LDerivedB>(r));
-    assert(fastvis::isa<RDerived>(r));
+    assert(csp::isa<Base>(r));
+    assert(!csp::isa<LDerivedA>(r));
+    assert(!csp::isa<LDerivedB>(r));
+    assert(csp::isa<RDerived>(r));
 
-    assert(fastvis::dyncast<Base*>(&r) != nullptr);
+    assert(csp::dyncast<Base*>(&r) != nullptr);
     assert(!canDyncast<LDerivedA*>(&r));
     assert(!canDyncast<LDerivedB*>(&r));
-    assert(fastvis::dyncast<RDerived*>(&r) != nullptr);
+    assert(csp::dyncast<RDerived*>(&r) != nullptr);
 
-    CHECK_NOTHROW(fastvis::dyncast<Base&>(r));
-    CHECK_NOTHROW(fastvis::dyncast<RDerived&>(r));
+    CHECK_NOTHROW(csp::dyncast<Base&>(r));
+    CHECK_NOTHROW(csp::dyncast<RDerived&>(r));
 
     base = &r;
 
-    assert(fastvis::isa<Base>(*base));
-    assert(!fastvis::isa<LDerivedA>(*base));
-    assert(!fastvis::isa<LDerivedB>(*base));
-    assert(fastvis::isa<RDerived>(*base));
+    assert(csp::isa<Base>(*base));
+    assert(!csp::isa<LDerivedA>(*base));
+    assert(!csp::isa<LDerivedB>(*base));
+    assert(csp::isa<RDerived>(*base));
 
-    assert(fastvis::dyncast<Base const*>(base));
-    assert(!fastvis::dyncast<LDerivedA const*>(base));
-    assert(!fastvis::dyncast<LDerivedB const*>(base));
-    assert(fastvis::dyncast<RDerived const*>(base));
+    assert(csp::dyncast<Base const*>(base));
+    assert(!csp::dyncast<LDerivedA const*>(base));
+    assert(!csp::dyncast<LDerivedB const*>(base));
+    assert(csp::dyncast<RDerived const*>(base));
 
-    CHECK_NOTHROW(fastvis::dyncast<Base const&>(*base));
-    CHECK_THROWS(fastvis::dyncast<LDerivedA const&>(*base));
-    CHECK_THROWS(fastvis::dyncast<LDerivedB const&>(*base));
-    CHECK_NOTHROW(fastvis::dyncast<RDerived const&>(*base));
+    CHECK_NOTHROW(csp::dyncast<Base const&>(*base));
+    CHECK_THROWS(csp::dyncast<LDerivedA const&>(*base));
+    CHECK_THROWS(csp::dyncast<LDerivedB const&>(*base));
+    CHECK_NOTHROW(csp::dyncast<RDerived const&>(*base));
 }
 
 /// MARK: Hierarchy with two classes
@@ -652,13 +649,13 @@ struct SHDerived: SHBase {
 
 } // namespace
 
-FASTVIS_DEFINE(SHBase, SHType::SHBase, void, Abstract);
-FASTVIS_DEFINE(SHDerived, SHType::SHDerived, SHBase, Concrete);
+CSP_DEFINE(SHBase, SHType::SHBase, void, Abstract);
+CSP_DEFINE(SHDerived, SHType::SHDerived, SHBase, Concrete);
 
 static void testSmallHierarchy() {
     SHDerived d;
     // clang-format off
-    int result = fastvis::visit((SHBase&)d, fastvis::overload{
+    int result = csp::visit((SHBase&)d, csp::overload{
         [](SHBase const&) { return 0; },
         [](SHDerived const&) { return 1; },
     }); // clang-format on
@@ -692,13 +689,13 @@ struct ScopeGuardDerived: ScopeGuardBase {
 
 } // namespace
 
-FASTVIS_DEFINE(ScopeGuardBase, ScopeGuardType::Base, void, Abstract);
-FASTVIS_DEFINE(ScopeGuardDerived, ScopeGuardType::Derived, ScopeGuardBase,
-               Concrete);
+CSP_DEFINE(ScopeGuardBase, ScopeGuardType::Base, void, Abstract);
+CSP_DEFINE(ScopeGuardDerived, ScopeGuardType::Derived, ScopeGuardBase,
+           Concrete);
 
 static void testDynDelete() {
     bool destroyed = false;
-    std::unique_ptr<ScopeGuardBase, fastvis::dyn_deleter> p(
+    std::unique_ptr<ScopeGuardBase, csp::dyn_deleter> p(
         new ScopeGuardDerived([&] { destroyed = true; }));
     p.reset();
     assert(destroyed);
@@ -708,14 +705,14 @@ static void testDynDelete() {
 
 template <typename X, typename Int>
 static void errorTestDynConcept() {
-    static_assert(!fastvis::impl::Dynamic<int>);
-    static_assert(!fastvis::impl::Dynamic<X>);
+    static_assert(!csp::impl::Dynamic<int>);
+    static_assert(!csp::impl::Dynamic<X>);
 }
 
 template <typename X, typename Int>
 static void errorTestVisit() {
-    static_assert(!requires { fastvis::visit(Int{}, [](Int) {}); });
-    static_assert(!requires { fastvis::visit(X{}, [](X) {}); });
+    static_assert(!requires { csp::visit(Int{}, [](Int) {}); });
+    static_assert(!requires { csp::visit(X{}, [](X) {}); });
 }
 
 struct X {};
@@ -735,37 +732,37 @@ struct TestClass {
 } // namespace
 
 static void testToFunction() {
-    auto f = fastvis::overload{ testFunction };
+    auto f = csp::overload{ testFunction };
     assert(f(0) == 42);
-    auto g = fastvis::overload{ &TestClass::foo };
+    auto g = csp::overload{ &TestClass::foo };
     TestClass t;
     assert(g(t, 0) == 42);
 }
 
-#ifndef FASTVIS_IMPL_TEST_COMPILER_ERRORS
-#define FASTVIS_IMPL_TEST_COMPILER_ERRORS 0
+#ifndef CSP_IMPL_TEST_COMPILER_ERRORS
+#define CSP_IMPL_TEST_COMPILER_ERRORS 0
 #endif
 
-#if FASTVIS_IMPL_TEST_COMPILER_ERRORS
+#if CSP_IMPL_TEST_COMPILER_ERRORS
 
 static void visitMissingCase(Cetacea& c) {
-    fastvis::visit(c, [](Dolphin&) {});
+    csp::visit(c, [](Dolphin&) {});
 }
 
 static void convertToInvalidDerived(Cetacea& c) {
-    fastvis::dyncast<Leopard const&>(c);
-    fastvis::unsafe_cast<Leopard const&>(c);
-    fastvis::isa<Leopard>(c);
+    csp::dyncast<Leopard const&>(c);
+    csp::unsafe_cast<Leopard const&>(c);
+    csp::isa<Leopard>(c);
 }
 
-#endif // FASTVIS_IMPL_TEST_COMPILER_ERRORS
+#endif // CSP_IMPL_TEST_COMPILER_ERRORS
 
 /// MARK: Union
 
 static void testDynUnion() {
-    fastvis::dyn_union<Animal> animal = Leopard();
+    csp::dyn_union<Animal> animal = Leopard();
     // clang-format off
-    int result = animal.visit(fastvis::overload{
+    int result = animal.visit(csp::overload{
         [](Animal const&) { return 0; },
         [](Leopard const&) { return 1; },
     }); // clang-format on
@@ -777,9 +774,9 @@ static void testDynUnion() {
 }
 
 static void testPartialUnion() {
-    fastvis::dyn_union<Cetacea> c = Whale();
+    csp::dyn_union<Cetacea> c = Whale();
     // clang-format off
-    int result = c.visit(fastvis::overload{
+    int result = c.visit(csp::overload{
         [](Cetacea const&) { return 0; },
         [](Whale const&) { return 1; },
     }); // clang-format on
@@ -788,15 +785,19 @@ static void testPartialUnion() {
 }
 
 static void testRanges() {
-#if FASTVIS_IMPL_HAS_RANGES
+#if CSP_IMPL_HAS_RANGES
     Dolphin dolphin;
     Whale whale;
     Leopard leopard;
     std::vector<Animal*> animals = { &dolphin, &whale, &leopard };
-    assert(std::ranges::distance(animals | fastvis::filter<Dolphin>) == 1);
-    auto* d = (animals | fastvis::filter<Dolphin>).front();
+    assert(std::ranges::distance(animals | csp::filter<Dolphin>) == 1);
+    auto* d = (animals | csp::filter<Dolphin>).front();
     static_assert(std::is_same_v<Dolphin*, decltype(d)>);
-#endif // FASTVIS_IMPL_HAS_RANGES
+#endif // CSP_IMPL_HAS_RANGES
+}
+
+static void testVisitMostDerivedClass() {
+    assert(visit(Leopard{}, [](Leopard const&) { return true; }));
 }
 
 int main() {
@@ -817,4 +818,5 @@ int main() {
     testDynUnion();
     testPartialUnion();
     testRanges();
+    testVisitMostDerivedClass();
 }

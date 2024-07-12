@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 using namespace examples;
-using namespace fastvis;
+using namespace csp;
 
 struct Interpreter::Impl {
 public:

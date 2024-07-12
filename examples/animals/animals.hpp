@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "fastvis.hpp"
+#include "csp.hpp"
 
 namespace examples {
 
@@ -36,31 +36,24 @@ enum class AnimalID {
 } // namespace examples
 
 // clang-format off
-FASTVIS_DEFINE(examples::Animal,   examples::AnimalID::Animal,   void,             Abstract)
-FASTVIS_DEFINE(examples::Mammal,   examples::AnimalID::Mammal,   examples::Animal, Abstract)
-FASTVIS_DEFINE(examples::Cat,      examples::AnimalID::Cat,      examples::Mammal, Concrete)
-FASTVIS_DEFINE(examples::Dog,      examples::AnimalID::Dog,      examples::Mammal, Concrete)
-FASTVIS_DEFINE(examples::Dolphin,  examples::AnimalID::Dolphin,  examples::Mammal, Concrete)
-FASTVIS_DEFINE(examples::Fish,     examples::AnimalID::Fish,     examples::Animal, Abstract)
-FASTVIS_DEFINE(examples::Goldfish, examples::AnimalID::Goldfish, examples::Fish,   Concrete)
-FASTVIS_DEFINE(examples::Shark,    examples::AnimalID::Shark,    examples::Fish,   Concrete)
-FASTVIS_DEFINE(examples::Bird,     examples::AnimalID::Bird,     examples::Animal, Abstract)
-FASTVIS_DEFINE(examples::Sparrow,  examples::AnimalID::Sparrow,  examples::Bird,   Concrete)
-FASTVIS_DEFINE(examples::Hawk,     examples::AnimalID::Hawk,     examples::Bird,   Concrete)
+CSP_DEFINE(examples::Animal,   examples::AnimalID::Animal,   void,             Abstract)
+CSP_DEFINE(examples::Mammal,   examples::AnimalID::Mammal,   examples::Animal, Abstract)
+CSP_DEFINE(examples::Cat,      examples::AnimalID::Cat,      examples::Mammal, Concrete)
+CSP_DEFINE(examples::Dog,      examples::AnimalID::Dog,      examples::Mammal, Concrete)
+CSP_DEFINE(examples::Dolphin,  examples::AnimalID::Dolphin,  examples::Mammal, Concrete)
+CSP_DEFINE(examples::Fish,     examples::AnimalID::Fish,     examples::Animal, Abstract)
+CSP_DEFINE(examples::Goldfish, examples::AnimalID::Goldfish, examples::Fish,   Concrete)
+CSP_DEFINE(examples::Shark,    examples::AnimalID::Shark,    examples::Fish,   Concrete)
+CSP_DEFINE(examples::Bird,     examples::AnimalID::Bird,     examples::Animal, Abstract)
+CSP_DEFINE(examples::Sparrow,  examples::AnimalID::Sparrow,  examples::Bird,   Concrete)
+CSP_DEFINE(examples::Hawk,     examples::AnimalID::Hawk,     examples::Bird,   Concrete)
 // clang-format on
 
 namespace examples {
 
-class Animal: public fastvis::base_helper<Animal> {
-public:
-    std::string const& name() const { return m_name; }
-
+class Animal: public csp::base_helper<Animal> {
 protected:
-    Animal(AnimalID ID, std::string name):
-        base_helper(ID), m_name(std::move(name)) {}
-
-private:
-    std::string m_name;
+    using base_helper::base_helper;
 };
 
 class Mammal: public Animal {
@@ -70,18 +63,17 @@ protected:
 
 class Cat: public Mammal {
 public:
-    explicit Cat(std::string name): Mammal(AnimalID::Cat, std::move(name)) {}
+    explicit constexpr Cat(): Mammal(AnimalID::Cat) {}
 };
 
 class Dog: public Mammal {
 public:
-    explicit Dog(std::string name): Mammal(AnimalID::Dog, std::move(name)) {}
+    explicit constexpr Dog(): Mammal(AnimalID::Dog) {}
 };
 
 class Dolphin: public Mammal {
 public:
-    explicit Dolphin(std::string name):
-        Mammal(AnimalID::Dolphin, std::move(name)) {}
+    explicit constexpr Dolphin(): Mammal(AnimalID::Dolphin) {}
 };
 
 class Fish: public Animal {
@@ -91,13 +83,12 @@ protected:
 
 class Goldfish: public Fish {
 public:
-    explicit Goldfish(std::string name):
-        Fish(AnimalID::Goldfish, std::move(name)) {}
+    explicit constexpr Goldfish(): Fish(AnimalID::Goldfish) {}
 };
 
 class Shark: public Fish {
 public:
-    explicit Shark(std::string name): Fish(AnimalID::Shark, std::move(name)) {}
+    explicit constexpr Shark(): Fish(AnimalID::Shark) {}
 };
 
 class Bird: public Animal {
@@ -107,13 +98,12 @@ protected:
 
 class Sparrow: public Bird {
 public:
-    explicit Sparrow(std::string name):
-        Bird(AnimalID::Sparrow, std::move(name)) {}
+    explicit constexpr Sparrow(): Bird(AnimalID::Sparrow) {}
 };
 
 class Hawk: public Bird {
 public:
-    explicit Hawk(std::string name): Bird(AnimalID::Hawk, std::move(name)) {}
+    explicit constexpr Hawk(): Bird(AnimalID::Hawk) {}
 };
 
 } // namespace examples

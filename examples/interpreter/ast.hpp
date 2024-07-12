@@ -1,6 +1,8 @@
 #ifndef AST_HPP
 #define AST_HPP
 
+/// This file defines AST nodes that we will use to evaluate expressions
+
 #include <algorithm>
 #include <cassert>
 #include <concepts>
@@ -9,69 +11,58 @@
 #include <string>
 #include <vector>
 
-#include "fastvis.hpp"
+#include "csp.hpp"
+
+/// X-Macro (https://en.wikipedia.org/wiki/X_macro) that serves as a single
+/// source of truth for the lists we are going to define
+#define AST_LIST(X)                                                            \
+    X(ASTNode, NoParent, Abstract)                                             \
+    X(Expr, ASTNode, Abstract)                                                 \
+    X(Identifier, Expr, Concrete)                                              \
+    X(Literal, Expr, Concrete)                                                 \
+    X(BinaryExpr, Expr, Concrete)                                              \
+    X(UnaryExpr, Expr, Concrete)                                               \
+    X(CallExpr, Expr, Concrete)                                                \
+    X(Statement, ASTNode, Abstract)                                            \
+    X(EmptyStatement, Statement, Concrete)                                     \
+    X(VarDecl, Statement, Concrete)                                            \
+    X(InstrStatement, Statement, Concrete)                                     \
+    X(ExprStatement, Statement, Concrete)                                      \
+    X(Program, ASTNode, Concrete)
 
 namespace examples {
 
-class ASTNode;
-class Expr;
-class Identifier;
-class Literal;
-class BinaryExpr;
-class UnaryExpr;
-class CallExpr;
-class Statement;
-class EmptyStatement;
-class VarDecl;
-class InstrStatement;
-class ExprStatement;
-class Program;
+#define X(Name, ...) class Name;
+AST_LIST(X)
+#undef X
 
 enum class ASTNodeID {
-    ASTNode,
-    Expr,
-    Identifier,
-    Literal,
-    BinaryExpr,
-    UnaryExpr,
-    CallExpr,
-    Statement,
-    EmptyStatement,
-    VarDecl,
-    InstrStatement,
-    ExprStatement,
-    Program,
+#define X(Name, ...) Name,
+    AST_LIST(X)
+#undef X
 };
+
+using NoParent = void;
 
 } // namespace examples
 
-// clang-format off
-FASTVIS_DEFINE(examples::ASTNode,        examples::ASTNodeID::ASTNode,        void,                Abstract)
-FASTVIS_DEFINE(examples::Expr,           examples::ASTNodeID::Expr,           examples::ASTNode,   Abstract)
-FASTVIS_DEFINE(examples::Identifier,     examples::ASTNodeID::Identifier,     examples::Expr,      Concrete)
-FASTVIS_DEFINE(examples::Literal,        examples::ASTNodeID::Literal,        examples::Expr,      Concrete)
-FASTVIS_DEFINE(examples::BinaryExpr,     examples::ASTNodeID::BinaryExpr,     examples::Expr,      Concrete)
-FASTVIS_DEFINE(examples::UnaryExpr,      examples::ASTNodeID::UnaryExpr,      examples::Expr,      Concrete)
-FASTVIS_DEFINE(examples::CallExpr,       examples::ASTNodeID::CallExpr,       examples::Expr,      Concrete)
-FASTVIS_DEFINE(examples::Statement,      examples::ASTNodeID::Statement,      examples::ASTNode,   Abstract)
-FASTVIS_DEFINE(examples::EmptyStatement, examples::ASTNodeID::EmptyStatement, examples::Statement, Concrete)
-FASTVIS_DEFINE(examples::VarDecl,        examples::ASTNodeID::VarDecl,        examples::Statement, Concrete)
-FASTVIS_DEFINE(examples::InstrStatement, examples::ASTNodeID::InstrStatement, examples::Statement, Concrete)
-FASTVIS_DEFINE(examples::ExprStatement,  examples::ASTNodeID::ExprStatement,  examples::Statement, Concrete)
-FASTVIS_DEFINE(examples::Program,        examples::ASTNodeID::Program,        examples::ASTNode,   Concrete)
-// clang-format on
+#define X(Name, Parent, Corporeality)                                          \
+    CSP_DEFINE(examples::Name, examples::ASTNodeID::Name, examples::Parent,    \
+               Corporeality)
+AST_LIST(X)
+#undef X
 
 namespace examples {
 
 template <typename T>
-using DynUniquePtr = std::unique_ptr<T, fastvis::dyn_deleter>;
+using DynUniquePtr = std::unique_ptr<T, csp::dyn_deleter>;
 
-class ASTNode: public fastvis::base_helper<ASTNode> {
+class ASTNode: public csp::base_helper<ASTNode> {
 public:
     template <typename T = ASTNode>
     T* childAt(size_t index) const {
         assert(index < numChildren());
-        return fastvis::cast<T*>(m_children[index].get());
+        return csp::cast<T*>(m_children[index].get());
     }
 
     size_t numChildren() const { return m_children.size(); }
@@ -165,7 +156,7 @@ public:
 
     auto arguments() const {
         return children() | std::views::drop(1) |
-               std::views::transform(fastvis::cast<Expr*>);
+               std::views::transform(csp::cast<Expr*>);
     }
 
 private:
@@ -214,7 +205,7 @@ public:
     Instruction instruction() const { return m_instr; }
 
     auto operands() const {
-        return children() | std::views::transform(fastvis::cast<Expr*>);
+        return children() | std::views::transform(csp::cast<Expr*>);
     }
 
     Expr* initExpr() const { return childAt<Expr>(1); }
@@ -237,7 +228,7 @@ public:
         ASTNode(ASTNodeID::Program, std::move(children)) {}
 
     auto statements() const {
-        return children() | std::views::transform(fastvis::cast<Statement*>);
+        return children() | std::views::transform(csp::cast<Statement*>);
     }
 };
 

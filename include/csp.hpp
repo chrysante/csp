@@ -1,45 +1,45 @@
-#ifndef FASTVIS_HPP
-#define FASTVIS_HPP
+#ifndef CSP_HPP
+#define CSP_HPP
 
 #include <bit> // For std::bit_cast
 #include <cassert>
 #include <cstddef>
-#include <memory> // For std::destroy_at
+#include <memory> // For std::destroy_at and std::unique_ptr
 #include <type_traits>
 #include <typeinfo> // For std::bad_cast
 #include <utility>  // For std::index_sequence
 
 /// User facing macro that declares all mappings defined below
-#define FASTVIS_DEFINE(Type, ID, ParentType, Corporeality)                     \
-    FASTVIS_IMPL_MAP(Type, ID)                                                 \
-    FASTVIS_IMPL_PARENT(Type, ParentType)                                      \
-    FASTVIS_IMPL_ABSTRACT(Type, Corporeality)
+#define CSP_DEFINE(Type, ID, ParentType, Corporeality)                         \
+    CSP_IMPL_MAP(Type, ID)                                                     \
+    CSP_IMPL_PARENT(Type, ParentType)                                          \
+    CSP_IMPL_ABSTRACT(Type, Corporeality)
 
 /// Declares a mapping of \p type to its identifier \p ID
-#define FASTVIS_IMPL_MAP(Type, ID)                                             \
+#define CSP_IMPL_MAP(Type, ID)                                                 \
     template <>                                                                \
-    [[maybe_unused]] inline constexpr decltype(ID)                             \
-        fastvis::impl::TypeToID<Type> = ID;                                    \
+    [[maybe_unused]] inline constexpr decltype(ID) csp::impl::TypeToID<Type> = \
+        ID;                                                                    \
     template <>                                                                \
-    struct fastvis::impl::IDToTypeImpl<ID> {                                   \
+    struct csp::impl::IDToTypeImpl<ID> {                                       \
         using type = Type;                                                     \
     };
 
 /// Declares a mapping of \p type to its parent type \p Parent
-#define FASTVIS_IMPL_PARENT(Type, Parent)                                      \
+#define CSP_IMPL_PARENT(Type, Parent)                                          \
     template <>                                                                \
-    struct fastvis::impl::TypeToParentImpl<Type> {                             \
+    struct csp::impl::TypeToParentImpl<Type> {                                 \
         using type = Parent;                                                   \
     };
 
 /// Declares a mapping of \p type to its corporeality \p CorporealityKind
-#define FASTVIS_IMPL_ABSTRACT(Type, CorporealityKind)                          \
+#define CSP_IMPL_ABSTRACT(Type, CorporealityKind)                              \
     template <>                                                                \
-    [[maybe_unused]] inline constexpr fastvis::impl::Corporeality              \
-        fastvis::impl::TypeToCorporeality<Type> =                              \
-            fastvis::impl::Corporeality::CorporealityKind;
+    [[maybe_unused]] inline constexpr csp::impl::Corporeality                  \
+        csp::impl::TypeToCorporeality<Type> =                                  \
+            csp::impl::Corporeality::CorporealityKind;
 
-namespace fastvis {
+namespace csp {
 
 namespace impl {
 
@@ -48,13 +48,13 @@ using std::size_t;
 /// # Enum reflection machinery
 
 /// Starting value for scanning enum ranges
-#ifndef FASTVIS_IMPL_ENUM_RANGE_MIN
-#define FASTVIS_IMPL_ENUM_RANGE_MIN -64
+#ifndef CSP_IMPL_ENUM_RANGE_MIN
+#define CSP_IMPL_ENUM_RANGE_MIN -64
 #endif
 
 /// End value for scanning enum ranges
-#ifndef FASTVIS_IMPL_ENUM_RANGE_MAX
-#define FASTVIS_IMPL_ENUM_RANGE_MAX 128
+#ifndef CSP_IMPL_ENUM_RANGE_MAX
+#define CSP_IMPL_ENUM_RANGE_MAX 128
 #endif
 
 #ifdef __GNUC__
@@ -90,14 +90,14 @@ constexpr long long enumRangeBound() {
     }
 }
 
-template <typename E, long long Min = FASTVIS_IMPL_ENUM_RANGE_MIN,
-          long long Max = FASTVIS_IMPL_ENUM_RANGE_MAX>
+template <typename E, long long Min = CSP_IMPL_ENUM_RANGE_MIN,
+          long long Max = CSP_IMPL_ENUM_RANGE_MAX>
 constexpr long long enumRangeFirst() {
     return enumRangeBound<E, Min, Max, 1>();
 }
 
-template <typename E, long long Min = FASTVIS_IMPL_ENUM_RANGE_MIN,
-          long long Max = FASTVIS_IMPL_ENUM_RANGE_MAX>
+template <typename E, long long Min = CSP_IMPL_ENUM_RANGE_MIN,
+          long long Max = CSP_IMPL_ENUM_RANGE_MAX>
 constexpr long long enumRangeLast() {
     return enumRangeBound<E, Max, Min, -1>() + 1;
 }
@@ -109,16 +109,14 @@ constexpr std::size_t enumCount() {
 
 /// MARK: - TMP debug utilities
 
-#define FASTVIS_IMPL_CONCAT(a, b)      FASTVIS_IMPL_CONCAT_IMPL(a, b)
-#define FASTVIS_IMPL_CONCAT_IMPL(a, b) a##b
+#define CSP_IMPL_CONCAT(a, b)      CSP_IMPL_CONCAT_IMPL(a, b)
+#define CSP_IMPL_CONCAT_IMPL(a, b) a##b
 
-#define FASTVIS_IMPL_CTPrintType(...)                                          \
-    ::fastvis::impl::CTTP<__VA_ARGS__> FASTVIS_IMPL_CONCAT(ctPrintVar,         \
-                                                           __LINE__);
+#define CSP_IMPL_CTPrintType(...)                                              \
+    ::csp::impl::CTTP<__VA_ARGS__> CSP_IMPL_CONCAT(ctPrintVar, __LINE__);
 
-#define FASTVIS_IMPL_CTPrintVal(...)                                           \
-    ::fastvis::impl::CTVP<__VA_ARGS__> FASTVIS_IMPL_CONCAT(ctPrintVar,         \
-                                                           __LINE__);
+#define CSP_IMPL_CTPrintVal(...)                                               \
+    ::csp::impl::CTVP<__VA_ARGS__> CSP_IMPL_CONCAT(ctPrintVar, __LINE__);
 
 template <typename...>
 struct CTTP;
@@ -139,22 +137,22 @@ struct CTVP;
 }
 
 #if defined(__GNUC__)
-#define FASTVIS_IMPL_ALWAYS_INLINE __attribute__((always_inline))
-#define FASTVIS_IMPL_NODEBUG_IMPL  __attribute__((nodebug))
+#define CSP_IMPL_ALWAYS_INLINE __attribute__((always_inline))
+#define CSP_IMPL_NODEBUG_IMPL  __attribute__((nodebug))
 #elif defined(_MSC_VER)
-#define FASTVIS_IMPL_ALWAYS_INLINE __forceinline
-#define FASTVIS_IMPL_NODEBUG_IMPL
+#define CSP_IMPL_ALWAYS_INLINE __forceinline
+#define CSP_IMPL_NODEBUG_IMPL
 #else
-#define FASTVIS_IMPL_ALWAYS_INLINE
-#define FASTVIS_IMPL_NODEBUG_IMPL
+#define CSP_IMPL_ALWAYS_INLINE
+#define CSP_IMPL_NODEBUG_IMPL
 #endif
 
-/// We define `FASTVIS_IMPL_NODEBUG` only conditionally so we can disable it in
+/// We define `CSP_IMPL_NODEBUG` only conditionally so we can disable it in
 /// our test and debug code
-#if defined(FASTVIS_IMPL_ENABLE_DEBUGGING)
-#define FASTVIS_IMPL_NODEBUG
+#if defined(CSP_IMPL_ENABLE_DEBUGGING)
+#define CSP_IMPL_NODEBUG
 #else
-#define FASTVIS_IMPL_NODEBUG FASTVIS_IMPL_NODEBUG_IMPL
+#define CSP_IMPL_NODEBUG CSP_IMPL_NODEBUG_IMPL
 #endif
 
 /// Small and simple array implementation to avoid `<array>` dependency
@@ -434,8 +432,8 @@ static constexpr bool ctIsaImpl(IDType TestID, IDType ActualID) {
     /// Poor mans `consteval`
     assert(std::is_constant_evaluated());
     if constexpr (std::is_same_v<IDType, InvalidTypeID>) {
-        FASTVIS_IMPL_CTPrintVal(TestID);
-        FASTVIS_IMPL_CTPrintVal(ActualID);
+        CSP_IMPL_CTPrintVal(TestID);
+        CSP_IMPL_CTPrintVal(ActualID);
     }
     if (ActualID == IDTraits<IDType>::last) {
         return false;
@@ -480,17 +478,17 @@ requires impl::Dynamic<Test>
 struct IsaFn {
     template <typename Known>
     requires std::is_class_v<Test> && SharesTypeHierarchyWith<Known, Test>
-    FASTVIS_IMPL_NODEBUG constexpr bool operator()(Known const* obj) const {
+    CSP_IMPL_NODEBUG constexpr bool operator()(Known const* obj) const {
         return isaImpl<Test>(obj);
     }
 
     template <typename Known>
     requires std::is_class_v<Test> && SharesTypeHierarchyWith<Known, Test>
-    FASTVIS_IMPL_NODEBUG constexpr bool operator()(Known const& obj) const {
+    CSP_IMPL_NODEBUG constexpr bool operator()(Known const& obj) const {
         return isaImpl<Test>(obj);
     }
 
-    FASTVIS_IMPL_NODEBUG constexpr bool operator()(TypeToIDType<Test> ID) const
+    CSP_IMPL_NODEBUG constexpr bool operator()(TypeToIDType<Test> ID) const
     requires std::is_class_v<Test>
     {
         return isaIDImpl<Test>(ID);
@@ -522,14 +520,14 @@ struct DyncastFn {
     template <typename From>
     requires std::is_pointer_v<To> && SharesTypeHierarchyWith<From, To> &&
              Castable<From, To>
-    FASTVIS_IMPL_NODEBUG constexpr To operator()(From* from) const {
+    CSP_IMPL_NODEBUG constexpr To operator()(From* from) const {
         return dyncastImpl<To>(from);
     }
 
     template <typename From>
     requires std::is_reference_v<To> && SharesTypeHierarchyWith<From, To> &&
              Castable<From, To>
-    FASTVIS_IMPL_NODEBUG constexpr To operator()(From& from) const {
+    CSP_IMPL_NODEBUG constexpr To operator()(From& from) const {
         return dyncastImpl<To>(from);
     }
 };
@@ -552,14 +550,14 @@ struct UnsafeCastFn {
     template <typename From>
     requires std::is_pointer_v<To> && SharesTypeHierarchyWith<From, To> &&
              Castable<From, To>
-    FASTVIS_IMPL_NODEBUG constexpr To operator()(From* from) const {
+    CSP_IMPL_NODEBUG constexpr To operator()(From* from) const {
         return castImpl<To>(from);
     }
 
     template <typename From>
     requires std::is_reference_v<To> && SharesTypeHierarchyWith<From, To> &&
              Castable<From, To>
-    FASTVIS_IMPL_NODEBUG constexpr To operator()(From& from) const {
+    CSP_IMPL_NODEBUG constexpr To operator()(From& from) const {
         return castImpl<To>(from);
     }
 };
@@ -589,8 +587,8 @@ enum class DeduceReturnTypeTag {};
 /// Converts the N-dimensional multi-index \p index to a single dimensional flat
 /// index according to \p bounds
 template <size_t N>
-FASTVIS_IMPL_ALWAYS_INLINE constexpr size_t
-flattenIndex(Array<size_t, N> index, Array<size_t, N> bounds) {
+CSP_IMPL_ALWAYS_INLINE constexpr size_t flattenIndex(Array<size_t, N> index,
+                                                     Array<size_t, N> bounds) {
     static_assert(N > 0);
     assert(index[0] < bounds[0]);
     size_t acc = index[0];
@@ -689,7 +687,7 @@ using DerivedAt = copy_cvref_t<U&&, IDToType<(TypeToIDType<U>)I>>;
 /// We use a macro here to not repeat ourselves and we don't wrap the
 /// expression in a lambda to avoid one unnecessary runtime indirection
 /// in debug builds
-#define FASTVIS_IMPL_INVOKE_EXPR()                                             \
+#define CSP_IMPL_INVOKE_EXPR()                                                 \
     f(static_cast<DerivedAt<T, StructuredIndex>>(t)...)
 
 /// Defines the invocation for one combination of runtime argument types. Users
@@ -697,19 +695,19 @@ using DerivedAt = copy_cvref_t<U&&, IDToType<(TypeToIDType<U>)I>>;
 template <typename R, typename F, typename... T, size_t... StructuredIndex>
 struct VisitorCase<R, F, TypeList<T...>,
                    std::index_sequence<StructuredIndex...>> {
-    FASTVIS_IMPL_NODEBUG static constexpr R impl(F&& f, T&&... t) {
-        using ExprType = decltype(FASTVIS_IMPL_INVOKE_EXPR());
+    CSP_IMPL_NODEBUG static constexpr R impl(F&& f, T&&... t) {
+        using ExprType = decltype(CSP_IMPL_INVOKE_EXPR());
         if constexpr (std::is_same_v<R, void>) {
-            FASTVIS_IMPL_INVOKE_EXPR();
+            CSP_IMPL_INVOKE_EXPR();
         }
         if constexpr (std::is_same_v<ExprType, void>) {
-            FASTVIS_IMPL_INVOKE_EXPR();
+            CSP_IMPL_INVOKE_EXPR();
             /// Unreachable because we invoke UB by leaving a non-void
             /// function without a value.
             unreachable();
         }
         else {
-            return FASTVIS_IMPL_INVOKE_EXPR();
+            return CSP_IMPL_INVOKE_EXPR();
         }
     }
 };
@@ -717,12 +715,12 @@ struct VisitorCase<R, F, TypeList<T...>,
 template <typename F, typename... T, size_t... StructuredIndex>
 struct VisitorCase<DeduceReturnTypeTag, F, TypeList<T...>,
                    std::index_sequence<StructuredIndex...>> {
-    FASTVIS_IMPL_NODEBUG static constexpr decltype(auto) impl(F&& f, T&&... t) {
-        return FASTVIS_IMPL_INVOKE_EXPR();
+    CSP_IMPL_NODEBUG static constexpr decltype(auto) impl(F&& f, T&&... t) {
+        return CSP_IMPL_INVOKE_EXPR();
     }
 };
 
-#undef FASTVIS_IMPL_INVOKE_EXPR
+#undef CSP_IMPL_INVOKE_EXPR
 
 template <typename R, typename F, typename T, typename InvocableIndices>
 struct MakeVisitorCasesImpl;
@@ -754,14 +752,14 @@ struct MakeVisitorCasesImpl<R, F, TypeList<T...>,
         constexpr size_t TestInvokeIndex = 3;
         using StructuredIndex =
         MakeStructuredIndex<TestInvokeIndex, InvocableIndices...>;
-        FASTVIS_IMPL_CTPrintType(StructuredIndex);
+        CSP_IMPL_CTPrintType(StructuredIndex);
         constexpr size_t FlatIndex =
         flattenIndex(IndexSequenceToArray<StructuredIndex>,
                      TypesToBounds<T...>);
-        FASTVIS_IMPL_CTPrintVal(FlatIndex);
+        CSP_IMPL_CTPrintVal(FlatIndex);
         constexpr Array RestructuredIndex =
         expandIndex<sizeof...(T)>(FlatIndex, { TypeToBound<T>... });
-        FASTVIS_IMPL_CTPrintVal(RestructuredIndex);
+        CSP_IMPL_CTPrintVal(RestructuredIndex);
 #endif
         return std::index_sequence<
             flattenIndex(IndexSequenceToArray<MakeStructuredIndex<
@@ -833,7 +831,7 @@ struct InvokeVisitorCases<ReturnType, TypeList<Cases...>,
 
     /// Function pointer for one invoke case
     template <typename Case, typename F, typename... T>
-    FASTVIS_IMPL_NODEBUG static constexpr ReturnType casePtr(F&& f, T&&... t) {
+    CSP_IMPL_NODEBUG static constexpr ReturnType casePtr(F&& f, T&&... t) {
         return Case::impl(static_cast<F&&>(f), static_cast<T&&>(t)...);
     }
 
@@ -867,8 +865,8 @@ struct InvokeVisitorCases<ReturnType, TypeList<Cases...>,
     /// Subtracts the index offset from \p flatIndex and invokes the function
     /// pointer at that index
     template <typename F, typename... T>
-    FASTVIS_IMPL_NODEBUG static constexpr ReturnType impl(size_t flatIndex,
-                                                          F&& f, T&&... t) {
+    CSP_IMPL_NODEBUG static constexpr ReturnType impl(size_t flatIndex, F&& f,
+                                                      T&&... t) {
         /// We use `.elems` directly here to avoid one function call in debug
         /// builds
         auto* dispatcher =
@@ -881,7 +879,7 @@ struct InvokeVisitorCases<ReturnType, TypeList<Cases...>,
 };
 
 template <typename R, typename F, typename... T>
-FASTVIS_IMPL_NODEBUG constexpr decltype(auto) visitImpl(F&& f, T&&... t) {
+CSP_IMPL_NODEBUG constexpr decltype(auto) visitImpl(F&& f, T&&... t) {
     using CaseTypeList = typename MakeVisitorCases<R, F, T...>::CaseTypeList;
     using FlatCaseIndexList =
         typename MakeVisitorCases<R, F, T...>::FlatCaseIndexList;
@@ -898,35 +896,35 @@ FASTVIS_IMPL_NODEBUG constexpr decltype(auto) visitImpl(F&& f, T&&... t) {
 } // namespace impl
 
 template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T>
-FASTVIS_IMPL_NODEBUG constexpr decltype(auto) visit(T&& t, F&& fn) {
+CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T&& t, F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T&&)t);
 }
 
 template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
           impl::Dynamic T1>
-FASTVIS_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, F&& fn) {
+CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1);
 }
 
 template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
           impl::Dynamic T1, impl::Dynamic T2>
-FASTVIS_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
-                                                    F&& fn) {
+CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
+                                                F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2);
 }
 
 template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
           impl::Dynamic T1, impl::Dynamic T2, impl::Dynamic T3>
-FASTVIS_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
-                                                    T3&& t3, F&& fn) {
+CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
+                                                T3&& t3, F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2, (T3&&)t3);
 }
 
 template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
           impl::Dynamic T1, impl::Dynamic T2, impl::Dynamic T3,
           impl::Dynamic T4>
-FASTVIS_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
-                                                    T3&& t3, T4&& t4, F&& fn) {
+CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
+                                                T3&& t3, T4&& t4, F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2, (T3&&)t3,
                               (T4&&)t4);
 }
@@ -934,7 +932,7 @@ FASTVIS_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
 template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
           impl::Dynamic T1, impl::Dynamic T2, impl::Dynamic T3,
           impl::Dynamic T4, impl::Dynamic T5>
-FASTVIS_IMPL_NODEBUG constexpr decltype(auto)
+CSP_IMPL_NODEBUG constexpr decltype(auto)
 visit(T0&& t0, T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2, (T3&&)t3,
                               (T4&&)t4, (T5&&)t5);
@@ -961,6 +959,16 @@ struct dyn_deleter {
 
 /// Calls `delete` on the most derived type
 inline constexpr dyn_deleter dyn_delete{};
+
+/// Typedef for `unique_ptr` using `dyn_deleter`
+template <typename T>
+using unique_ptr = std::unique_ptr<T, dyn_deleter>;
+
+/// `make_unique` implementation creating `csp::unique_ptr`
+template <typename T, typename... Args>
+constexpr unique_ptr<T> make_unique(Args&&... args) {
+    return unique_ptr<T>(new T((Args&&)args...));
+}
 
 /// MARK: Union
 
@@ -1057,10 +1065,12 @@ template <typename Base, typename... Args>
 struct DynUnion<Base, TypeList<Args...>> {
     template <typename, typename>
     friend struct DynUnion;
-    
-    static constexpr bool NothrowMoveConstructible = std::conjunction_v<std::is_nothrow_move_constructible<Args>...>;
-    static constexpr bool NothrowMoveAssignable = std::conjunction_v<std::is_nothrow_move_assignable<Args>...>;
-    
+
+    static constexpr bool NothrowMoveConstructible =
+        std::conjunction_v<std::is_nothrow_move_constructible<Args>...>;
+    static constexpr bool NothrowMoveAssignable =
+        std::conjunction_v<std::is_nothrow_move_assignable<Args>...>;
+
     template <typename T, typename Impl>
     static copy_cvref_t<Impl, T> getImpl(Impl&& impl) {
         // TODO: static assert that all of Args... that are derived from T have
@@ -1086,25 +1096,25 @@ template <impl::Dynamic Base>
 class dyn_union: impl::DynUnion<Base> {
     using impl::DynUnion<Base>::NothrowMoveConstructible;
     using impl::DynUnion<Base>::NothrowMoveAssignable;
-    
+
 public:
-    /// \Returns `fastvis::visit(FWD(*this), FWD(f))`
+    /// \Returns `csp::visit(FWD(*this), FWD(f))`
     /// @{
     template <typename F>
     constexpr decltype(auto) visit(F&& f) & {
-        return fastvis::visit(base(), (F&&)f);
+        return csp::visit(base(), (F&&)f);
     }
     template <typename F>
     constexpr decltype(auto) visit(F&& f) const& {
-        return fastvis::visit(base(), (F&&)f);
+        return csp::visit(base(), (F&&)f);
     }
     template <typename F>
     constexpr decltype(auto) visit(F&& f) && {
-        return fastvis::visit(base(), (F&&)f);
+        return csp::visit(base(), (F&&)f);
     }
     template <typename F>
     constexpr decltype(auto) visit(F&& f) const&& {
-        return fastvis::visit(base(), (F&&)f);
+        return csp::visit(base(), (F&&)f);
     }
     /// @}
 
@@ -1128,7 +1138,8 @@ public:
         std::construct_at(this, rhs);
         return *this;
     }
-    constexpr dyn_union(dyn_union&& rhs) noexcept(NothrowMoveConstructible) : dyn_union(impl::UnionNoInit{}) {
+    constexpr dyn_union(dyn_union&& rhs) noexcept(NothrowMoveConstructible):
+        dyn_union(impl::UnionNoInit{}) {
         rhs.visit([this]<typename T>(T& rhs) -> void {
             std::construct_at(&impl::unionGet<T>(this->impl), std::move(rhs));
         });
@@ -1139,9 +1150,7 @@ public:
             return *this;
         }
         if (get_rtti(base()) == get_rtti(rhs.base())) {
-            visit([&]<typename T>(T& This) {
-                This = std::move(rhs.get<T>());
-            });
+            visit([&]<typename T>(T& This) { This = std::move(rhs.get<T>()); });
             return *this;
         }
         std::destroy_at(this);
@@ -1162,7 +1171,7 @@ public:
 
     Base* operator->() noexcept { return &base(); }
     Base const* operator->() const noexcept { return &base(); }
-    
+
     template <std::derived_from<Base> T>
     T& get() & {
         return impl::DynUnion<Base>::template getImpl<T>(this->impl);
@@ -1256,7 +1265,7 @@ struct overload: impl::ToFunctionT<F>... {
 template <typename... F>
 overload(F...) -> overload<F...>;
 
-} // namespace fastvis
+} // namespace csp
 
 /// # range utilities
 
@@ -1264,9 +1273,9 @@ overload(F...) -> overload<F...>;
 #if __has_include(<ranges>)
 #include <ranges>
 
-#define FASTVIS_IMPL_HAS_RANGES 1
+#define CSP_IMPL_HAS_RANGES 1
 
-namespace fastvis {
+namespace csp {
 
 template <impl::Dynamic T>
 inline constexpr auto filter =
@@ -1280,29 +1289,24 @@ inline constexpr auto filter =
     }
 });
 
-template <typename T>
-struct tag;
-
-
-
-} // namespace fastvis
+} // namespace csp
 
 #endif // __has_include (<ranges>)
 #endif // defined __has_include
 
 /// # Undef
 
-#if !defined(FASTVIS_IMPL_ENABLE_DEBUGGING)
+#if !defined(CSP_IMPL_ENABLE_DEBUGGING)
 
-#undef FASTVIS_IMPL_CONCAT
-#undef FASTVIS_IMPL_CONCAT_IMPL
-#undef FASTVIS_IMPL_CTPrintType
-#undef FASTVIS_IMPL_CTPrintVal
+#undef CSP_IMPL_CONCAT
+#undef CSP_IMPL_CONCAT_IMPL
+#undef CSP_IMPL_CTPrintType
+#undef CSP_IMPL_CTPrintVal
 
-#endif // FASTVIS_IMPL_ENABLE_DEBUGGING
+#endif // CSP_IMPL_ENABLE_DEBUGGING
 
-#undef FASTVIS_IMPL_ALWAYS_INLINE
-#undef FASTVIS_IMPL_NODEBUG
-#undef FASTVIS_IMPL_NODEBUG_IMPL
+#undef CSP_IMPL_ALWAYS_INLINE
+#undef CSP_IMPL_NODEBUG
+#undef CSP_IMPL_NODEBUG_IMPL
 
-#endif // FASTVIS_HPP
+#endif // CSP_HPP
