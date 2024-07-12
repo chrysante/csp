@@ -1,10 +1,7 @@
-#  RTTI library for fast visitation, pattern matching and multiple dispatch
+#  RTTI library for fast visitation and multiple dispatch
 
 This is a support library I originally wrote for my compiler project. 
 It is inspired by LLVM's RTTI, but goes a step further by allowing `std::variant`-like `visit` expressions. 
-
-The setup of the RTTI-data is a bit involved, so before scaring you off, 
-let me show you the benefits.
 
 ## Pattern matching
 
@@ -73,43 +70,6 @@ Most mammals live on land, so we define `Mammal` to return `"Land"`, but add a s
 Here the visitor must be invocable with every combination of types derived from the static types of the arguments, in this case `Animal` and `Animal`. To simplify this, we simply provide a base case with 
 
     [](Animal const& a1, Animal const& a2) { std::cout << "The animals ignore each other.\n"; },  
-
-### Another classical OOP example: shapes!
-
-We have three classes, `Circle`, `Rect`, `Triangle`, and a common base class `Shape`
-
-We define collision behaviour for all combinations of shapes:
-
-    #include "Shapes.hpp"
-
-    void doCollide(Circle const&, Circle const&);
-    void doCollide(Circle const&, Rect const&);
-    void doCollide(Circle const&, Triangle const&);
-    void doCollide(Rect const&, Rect const&);
-    void doCollide(Rect const&, Triangle const&);
-    void doCollide(Triangle const&, Triangle const&);
-    void doCollide(std::derived_from<Shape> auto const& a, 
-                   std::derived_from<Shape> auto const& b) {
-        return doCollide(b, a);
-    }
-
-Now, with two references to `Shapes`, we can again use `visit` to dispatch to the correct implementation:
-    
-    void collide(Shape const& a, Shape const& b) {
-        csp::visit(a, b, [](auto const& a, auto const& b) {
-            doCollide(a, b);
-        });
-    }
-
-This is useful if we have a list of `Shape` pointers for which we want to handle collision: 
-
-    void handleCollisions(std::span<Shape* const> shapes) {
-        for (size_t i = 0; i < shapes.size(); ++i) {
-            for (size_t j = i + 1; j < shapes.size(); ++j) {
-                collide(*shapes[i], *shapes[j]);
-            }
-        }
-    }
     
 ### Operators
 
