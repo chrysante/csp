@@ -289,7 +289,7 @@ Here are sketch implementations of the various functions:
 
 ## Utilities
 
-Accessing polymorhic objects is one thing, storing them is another. 
+Accessing polymorphic objects is one thing, storing them is another. 
 For storing polymorphic types in containers of `std::unique_ptr`, this library provides the `csp::dyn_deleter` 
 class to safely `delete` allocated objects through pointers-to-base without virtual destructors. 
 
