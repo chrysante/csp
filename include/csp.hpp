@@ -940,7 +940,23 @@ visit(T0&& t0, T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, F&& fn) {
 
 /// MARK: - Dynamic deleter
 
+namespace impl {
+
+template <typename T>
+concept ExternallyDestructible = requires(T& t) { do_destroy(t); };
+
+template <typename T>
+concept ExternallyDeletable = requires(T& t) { do_delete(t); };
+
+} // namespace impl
+
 struct dyn_destructor {
+    template <typename T>
+    requires impl::Dynamic<T> && impl::ExternallyDestructible<T>
+    constexpr void operator()(T* object) const {
+        assert(object && "object must not be null");
+        do_destroy(*object);
+    }
     constexpr void operator()(impl::Dynamic auto* object) const {
         assert(object && "object must not be null");
         visit(*object, [](auto& derived) { std::destroy_at(&derived); });
@@ -951,6 +967,12 @@ struct dyn_destructor {
 inline constexpr dyn_destructor dyn_destroy{};
 
 struct dyn_deleter {
+    template <typename T>
+    requires impl::Dynamic<T> && impl::ExternallyDeletable<T>
+    constexpr void operator()(T* object) const {
+        assert(object && "object must not be null");
+        do_delete(*object);
+    }
     constexpr void operator()(impl::Dynamic auto* object) const {
         assert(object && "object must not be null");
         visit(*object, [](auto& derived) { delete &derived; });
@@ -966,6 +988,7 @@ using unique_ptr = std::unique_ptr<T, dyn_deleter>;
 
 /// `make_unique` implementation creating `csp::unique_ptr`
 template <typename T, typename... Args>
+requires std::constructible_from<T, Args...>
 constexpr unique_ptr<T> make_unique(Args&&... args) {
     return unique_ptr<T>(new T((Args&&)args...));
 }

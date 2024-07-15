@@ -800,6 +800,47 @@ static void testVisitMostDerivedClass() {
     assert(visit(Leopard{}, [](Leopard const&) { return true; }));
 }
 
+namespace ext_del {
+
+enum class ID { A, B };
+
+struct A;
+struct B;
+
+csp::unique_ptr<A> makeA(int*);
+void do_delete(A&);
+
+} // namespace ext_del
+
+CSP_DEFINE(ext_del::A, ext_del::ID::A, void, Abstract)
+CSP_DEFINE(ext_del::B, ext_del::ID::B, ext_del::A, Concrete)
+
+static void testExternalDeletion() {
+    int i = 1;
+    auto p = ext_del::makeA(&i);
+    assert(i == 42);
+    p.reset();
+    assert(i == 0);
+}
+
+struct ext_del::A: csp::base_helper<A> {
+    using base_helper::base_helper;
+};
+
+struct ext_del::B: A {
+    B(int* p): A(ID::B), p(p) { *p = 42; }
+    ~B() { *p = 0; }
+    int* p;
+};
+
+csp::unique_ptr<ext_del::A> ext_del::makeA(int* p) {
+    return csp::make_unique<B>(p);
+}
+
+void ext_del::do_delete(A& a) {
+    csp::visit(a, [](auto& a) { delete &a; });
+}
+
 int main() {
     testInternals();
     testIsaAndDyncast();
@@ -819,4 +860,5 @@ int main() {
     testPartialUnion();
     testRanges();
     testVisitMostDerivedClass();
+    testExternalDeletion();
 }
