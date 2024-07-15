@@ -422,6 +422,29 @@ template <typename From, typename To>
 concept Castable =
     CastableImpl<remove_ref_ptr_cv_t<From>, remove_ref_ptr_cv_t<To>>;
 
+template <typename P>
+concept DynSmartPtr =
+    std::is_class_v<std::remove_cvref_t<P>> && requires(P& p) {
+        {
+            *p
+        } -> Dynamic;
+    };
+
+template <typename P>
+using PointeeType = std::remove_reference_t<decltype(*std::declval<P>())>;
+
+template <typename P, typename To>
+struct RebindSmartPtrImpl;
+
+template <template <typename, typename...> class P, typename T,
+          typename... Args, typename To>
+struct RebindSmartPtrImpl<P<T, Args...>, To> {
+    using type = P<To, Args...>;
+};
+
+template <typename P, typename To>
+using RebindSmartPtr = typename RebindSmartPtrImpl<P, To>::type;
+
 /// MARK: - isa
 
 /// \Returns `true` if \p TestID is a super class of \p ActualID
@@ -488,6 +511,13 @@ struct IsaFn {
         return isaImpl<Test>(obj);
     }
 
+    template <DynSmartPtr Known>
+    requires std::is_class_v<Test> &&
+             SharesTypeHierarchyWith<PointeeType<Known>, Test>
+    CSP_IMPL_NODEBUG constexpr bool operator()(Known const& obj) const {
+        return isaImpl<Test>(std::to_address(obj));
+    }
+
     CSP_IMPL_NODEBUG constexpr bool operator()(TypeToIDType<Test> ID) const
     requires std::is_class_v<Test>
     {
@@ -530,6 +560,19 @@ struct DyncastFn {
     CSP_IMPL_NODEBUG constexpr To operator()(From& from) const {
         return dyncastImpl<To>(from);
     }
+
+    template <DynSmartPtr Known>
+    requires std::is_class_v<To> &&
+             SharesTypeHierarchyWith<PointeeType<Known>, To> &&
+             Castable<PointeeType<Known>*,
+                      copy_cvref_t<PointeeType<Known>, To>*> &&
+             std::is_rvalue_reference_v<Known&&>
+    CSP_IMPL_NODEBUG constexpr RebindSmartPtr<
+        Known, copy_cvref_t<PointeeType<Known>, To>>
+    operator()(Known&& p) const {
+        return RebindSmartPtr<Known, copy_cvref_t<PointeeType<Known>, To>>(
+            dyncastImpl<copy_cvref_t<PointeeType<Known>, To>*>(p.release()));
+    }
 };
 
 template <typename To, typename From>
@@ -559,6 +602,19 @@ struct UnsafeCastFn {
              Castable<From, To>
     CSP_IMPL_NODEBUG constexpr To operator()(From& from) const {
         return castImpl<To>(from);
+    }
+
+    template <DynSmartPtr Known>
+    requires std::is_class_v<To> &&
+             SharesTypeHierarchyWith<PointeeType<Known>, To> &&
+             Castable<PointeeType<Known>*,
+                      copy_cvref_t<PointeeType<Known>, To>*> &&
+             std::is_rvalue_reference_v<Known&&>
+    CSP_IMPL_NODEBUG constexpr RebindSmartPtr<
+        Known, copy_cvref_t<PointeeType<Known>, To>>
+    operator()(Known&& p) const {
+        return RebindSmartPtr<Known, copy_cvref_t<PointeeType<Known>, To>>(
+            castImpl<copy_cvref_t<PointeeType<Known>, To>*>(p.release()));
     }
 };
 
@@ -938,7 +994,7 @@ visit(T0&& t0, T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, F&& fn) {
                               (T4&&)t4, (T5&&)t5);
 }
 
-/// MARK: - Dynamic deleter
+/// MARK: - Dynamic deleter impl
 
 namespace impl {
 

@@ -815,6 +815,10 @@ void do_delete(A&);
 CSP_DEFINE(ext_del::A, ext_del::ID::A, void, Abstract)
 CSP_DEFINE(ext_del::B, ext_del::ID::B, ext_del::A, Concrete)
 
+struct ext_del::A: csp::base_helper<A> {
+    using base_helper::base_helper;
+};
+
 static void testExternalDeletion() {
     int i = 1;
     auto p = ext_del::makeA(&i);
@@ -823,13 +827,15 @@ static void testExternalDeletion() {
     assert(i == 0);
 }
 
-struct ext_del::A: csp::base_helper<A> {
-    using base_helper::base_helper;
-};
-
 struct ext_del::B: A {
-    B(int* p): A(ID::B), p(p) { *p = 42; }
-    ~B() { *p = 0; }
+    B(int* p): A(ID::B), p(p) {
+        if (p)
+            *p = 42;
+    }
+    ~B() {
+        if (p)
+            *p = 0;
+    }
     int* p;
 };
 
@@ -839,6 +845,22 @@ csp::unique_ptr<ext_del::A> ext_del::makeA(int* p) {
 
 void ext_del::do_delete(A& a) {
     csp::visit(a, [](auto& a) { delete &a; });
+}
+
+static void testUniquePtr() {
+    {
+        auto p = ext_del::makeA(nullptr);
+        assert(csp::isa<ext_del::B>(p));
+        auto q = csp::dyncast<ext_del::B>(std::move(p));
+    }
+    {
+        csp::dyncast<ext_del::B>(ext_del::makeA(nullptr));
+    }
+    {
+        csp::unique_ptr<ext_del::A const> p = ext_del::makeA(nullptr);
+        csp::cast<ext_del::B>(std::move(p));
+        csp::dyncast<ext_del::B>(std::move(p));
+    }
 }
 
 int main() {
@@ -861,4 +883,5 @@ int main() {
     testRanges();
     testVisitMostDerivedClass();
     testExternalDeletion();
+    testUniquePtr();
 }
