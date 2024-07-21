@@ -1274,10 +1274,8 @@ private:
 
 /// # Base helper
 
-template <typename Base>
+template <typename Base, typename IDType = impl::TypeToIDType<Base>>
 struct base_helper {
-    using IDType = impl::TypeToIDType<Base>;
-
     constexpr base_helper(IDType ID): _id(ID) {}
 
 private:
