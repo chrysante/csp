@@ -15,7 +15,10 @@ target_include_directories(csp
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_sources(csp INTERFACE include/csp.hpp)
+if(PROJECT_IS_TOP_LEVEL) 
+  # Add the source file if we are top level to make it show up in the IDE when developing
+  target_sources(csp INTERFACE include/csp.hpp)
+endif()
 
 if(NOT PROJECT_IS_TOP_LEVEL)
   return()
