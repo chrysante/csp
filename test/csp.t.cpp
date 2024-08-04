@@ -793,6 +793,10 @@ static void testRanges() {
     assert(std::ranges::distance(animals | csp::filter<Dolphin>) == 1);
     auto* d = (animals | csp::filter<Dolphin>).front();
     static_assert(std::is_same_v<Dolphin*, decltype(d)>);
+    
+    auto refs = animals | std::views::transform([](auto* p) -> auto& { return *p; });
+    auto& r = (refs | csp::filter<Dolphin>).front();
+    static_assert(std::is_same_v<Dolphin&, decltype(r)>);
 #endif // CSP_IMPL_HAS_RANGES
 }
 

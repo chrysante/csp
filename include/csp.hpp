@@ -1274,6 +1274,10 @@ private:
 
 /// # Base helper
 
+/// ** Read this if compilation fails here: **
+/// If you use this class before the mappings for the class hierarchy are
+/// defined, you must provide the `IDType` template argument, because
+/// `impl::TypeToIDType<Base>` will be undefined.
 template <typename Base, typename IDType = impl::TypeToIDType<Base>>
 struct base_helper {
     constexpr base_helper(IDType ID): _id(ID) {}
