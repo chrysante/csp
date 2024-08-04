@@ -1221,7 +1221,7 @@ public:
     }
     dyn_union& operator=(dyn_union const& rhs) {
         if (this == &rhs) {
-            return;
+            return *this;
         }
         std::destroy_at(this);
         std::construct_at(this, rhs);
