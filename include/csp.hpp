@@ -140,7 +140,11 @@ struct CTVP;
 
 #if defined(__GNUC__)
 #define CSP_IMPL_ALWAYS_INLINE __attribute__((always_inline))
-#define CSP_IMPL_NODEBUG_IMPL  __attribute__((nodebug))
+#if defined(__clang__)
+#define CSP_IMPL_NODEBUG_IMPL __attribute__((nodebug))
+#else
+#define CSP_IMPL_NODEBUG_IMPL
+#endif
 #elif defined(_MSC_VER)
 #define CSP_IMPL_ALWAYS_INLINE __forceinline
 #define CSP_IMPL_NODEBUG_IMPL
