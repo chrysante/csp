@@ -26,6 +26,10 @@ struct StrangeScope {
 
 } // namespace
 
+// We need this enum in in global scope (not in an anonymous namespace) because
+// impl::enumIsValid() behaves differently in this case
+enum UnscopedGlobal { A, B, C };
+
 #define CHECK_NOTHROW(...)                                                     \
     do {                                                                       \
         try {                                                                  \
@@ -76,6 +80,10 @@ static_assert(csp::impl::enumCount<XY::TestEnumNegative>() == 3);
 static_assert(csp::impl::enumRangeFirst<Unscoped>() == 0);
 static_assert(csp::impl::enumRangeLast<Unscoped>() == 3);
 static_assert(csp::impl::enumCount<Unscoped>() == 3);
+
+static_assert(csp::impl::enumRangeFirst<UnscopedGlobal>() == 0);
+static_assert(csp::impl::enumRangeLast<UnscopedGlobal>() == 3);
+static_assert(csp::impl::enumCount<UnscopedGlobal>() == 3);
 
 static_assert(csp::impl::enumRangeFirst<StrangeScope<[]<size_t I>() {}>::E>() ==
               0);
@@ -793,8 +801,9 @@ static void testRanges() {
     assert(std::ranges::distance(animals | csp::filter<Dolphin>) == 1);
     auto* d = (animals | csp::filter<Dolphin>).front();
     static_assert(std::is_same_v<Dolphin*, decltype(d)>);
-    
-    auto refs = animals | std::views::transform([](auto* p) -> auto& { return *p; });
+
+    auto refs =
+        animals | std::views::transform([](auto* p) -> auto& { return *p; });
     auto& r = (refs | csp::filter<Dolphin>).front();
     static_assert(std::is_same_v<Dolphin&, decltype(r)>);
 #endif // CSP_IMPL_HAS_RANGES

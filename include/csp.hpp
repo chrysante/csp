@@ -66,6 +66,8 @@ constexpr bool enumIsValidImpl() {
             return false;
         if (__PRETTY_FUNCTION__[I] == ':')
             return true;
+        if (__PRETTY_FUNCTION__[I] == ' ')
+            return true;
     }
     assert(false);
 }
