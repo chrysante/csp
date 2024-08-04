@@ -1243,7 +1243,7 @@ public:
             return *this;
         }
         if (get_rtti(base()) == get_rtti(rhs.base())) {
-            visit([&]<typename T>(T& This) { This = std::move(rhs.get<T>()); });
+            visit([&]<typename T>(T& This) { This = std::move(rhs.template get<T>()); });
             return *this;
         }
         std::destroy_at(this);
