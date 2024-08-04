@@ -5,7 +5,7 @@ It is inspired by LLVM's RTTI, but goes a step further by allowing `std::variant
 
 CSP stands for "closed set polymorphism". Unlike C++'s `virtual` polymorphism, here all classes in a hierarchy must be known at compile time.    
 
-Requires C++20 and a recent version of Clang (>=13) or GCC (>=11) 
+Requires C++20 and a recent version of Clang (>=13), GCC (>=11) or MSVC. 
 
 ## Build
 
