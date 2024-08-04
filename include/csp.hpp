@@ -620,6 +620,8 @@ struct UnsafeCastFn {
 
 } // namespace impl
 
+inline namespace ops {
+
 template <typename Test>
 inline constexpr impl::IsaFn<Test> isa{};
 
@@ -631,6 +633,8 @@ inline constexpr impl::UnsafeCastFn<To> cast{};
 
 template <typename To>
 inline constexpr impl::UnsafeCastFn<To> unsafe_cast{};
+
+} // namespace ops
 
 /// MARK: - visit
 
@@ -951,6 +955,8 @@ CSP_IMPL_NODEBUG constexpr decltype(auto) visitImpl(F&& f, T&&... t) {
 
 } // namespace impl
 
+inline namespace ops {
+
 template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T>
 CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T&& t, F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T&&)t);
@@ -993,6 +999,8 @@ visit(T0&& t0, T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2, (T3&&)t3,
                               (T4&&)t4, (T5&&)t5);
 }
+
+} // namespace ops
 
 /// MARK: - Dynamic deleter impl
 
