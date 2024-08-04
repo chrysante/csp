@@ -1,4 +1,4 @@
-#  RTTI library for fast visitation and multiple dispatch
+#  Intrusive RTTI library for fast visitation and multiple dispatch
 
 This is a support library I originally wrote for my compiler project. 
 It is inspired by LLVM's RTTI, but goes a step further by allowing `std::variant`-like `visit` expressions. 
@@ -130,7 +130,7 @@ The code above is nice, but it doesn't come for free. For `isa`, `dyncast`, `cas
     };
 
     // Bindings to the library, in the global namespace:
-    //           - Type    - Enum ID           - Parent class   - Abstract or Concrete
+    //       - Type    - Enum ID           - Parent class   - Abstract or Concrete
     CSP_DEFINE(Animal,   AnimalID::Animal,   void,            Abstract)
     CSP_DEFINE(Mammal,   AnimalID::Mammal,   Animal,          Abstract)
     CSP_DEFINE(Cat,      AnimalID::Cat,      Mammal,          Concrete)
@@ -143,7 +143,7 @@ The code above is nice, but it doesn't come for free. For `isa`, `dyncast`, `cas
     CSP_DEFINE(Sparrow,  AnimalID::Sparrow,  Bird,            Concrete)
     CSP_DEFINE(Hawk,     AnimalID::Hawk,     Bird,            Concrete)
 
-The `CSP_DEFINE` macro defines mappings for each class in the hierarchy to its base class, 
+The `CSP_DEFINE` macro defines mappings for each class in the hierarchy to its direct base class, 
 to its runtime type ID (and back), and it defines each class as abstract or concrete.
 
 This last part may seem strange, but it is required for `visit` expressions:
