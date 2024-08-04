@@ -3,6 +3,8 @@
 This is a support library I originally wrote for my compiler project. 
 It is inspired by LLVM's RTTI, but goes a step further by allowing `std::variant`-like `visit` expressions. 
 
+CSP stands for "closed set polymorphism". Unlike C++'s `virtual` polymorphism, here all classes in a hierarchy must be known at compile time.    
+
 Requires C++20 and a recent version of Clang (>=13) or GCC (>=11) 
 
 ## Build
@@ -14,7 +16,7 @@ This is a header-only library. You can add the library to your project using CMa
     FetchContent_Declare(
         csp
         GIT_REPOSITORY https://github.com/chrysante/csp.git
-        GIT_TAG        0.0.1  # Use the appropriate branch or tag
+        GIT_TAG        0.0.1
     )
     FetchContent_MakeAvailable(csp)
 
