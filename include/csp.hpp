@@ -358,7 +358,7 @@ template <typename IDType>
 constexpr IDType IDToParent(IDType ID) {
     constexpr Array ParentArray = []<size_t... I>(std::index_sequence<I...>) {
         return Array{ ValueOr<IDTraits<IDType>::last>(
-            TypeToID<TypeToParent<IDToType<IDType{ I }>>>)... };
+            TypeToID<TypeToParent<IDToType<IDType(I)>>>)... };
     }(std::make_index_sequence<IDTraits<IDType>::count>{});
     return ParentArray[(size_t)ID];
 }
@@ -473,7 +473,7 @@ template <typename TestType>
 static constexpr auto makeIsaDispatchArray() {
     using IDType = decltype(TypeToID<TestType>);
     return []<size_t... Actual>(std::index_sequence<Actual...>) {
-        return Array{ ctIsaImpl(TypeToID<TestType>, IDType{ Actual })... };
+        return Array{ ctIsaImpl(TypeToID<TestType>, IDType(Actual))... };
     }(std::make_index_sequence<IDTraits<IDType>::count>{});
 }
 

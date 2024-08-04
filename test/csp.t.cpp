@@ -876,6 +876,42 @@ static void testUniquePtr() {
     }
 }
 
+namespace unscoped {
+
+enum ID { ID_A, ID_B, ID_C };
+
+struct A: csp::base_helper<A, ID> {
+    using base_helper::base_helper;
+};
+
+struct B: A {
+    B(): A(ID_B) {}
+};
+
+struct C: A {
+    C(): A(ID_C) {}
+};
+
+} // namespace unscoped
+
+CSP_DEFINE(unscoped::A, unscoped::ID_A, void, Abstract)
+CSP_DEFINE(unscoped::B, unscoped::ID_B, unscoped::A, Concrete)
+CSP_DEFINE(unscoped::C, unscoped::ID_C, unscoped::A, Concrete)
+
+void testUnscopedEnum() {
+    unscoped::B b;
+    unscoped::A& a = b;
+    assert(csp::isa<unscoped::B>(a));
+    int value = visit(a, csp::overload{
+                             [](unscoped::B&) { return 1; },
+                             [](unscoped::C&) {
+        assert(false);
+        return 0;
+    },
+                         });
+    assert(value == 1);
+}
+
 int main() {
     testInternals();
     testIsaAndDyncast();
