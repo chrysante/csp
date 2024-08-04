@@ -78,6 +78,28 @@ constexpr bool enumIsValid() {
     return enumIsValidImpl<std::bit_cast<E>(static_cast<U>(Value))>();
 }
 
+#elif defined(_MSC_VER)
+
+template <auto E>
+constexpr bool enumIsValidImpl() {
+    for (int I = (int)sizeof(__FUNCSIG__) - 7; I >= 0; --I) {
+        if (__FUNCSIG__[I] == ')')
+            return false;
+        if (__FUNCSIG__[I] == ':')
+            return true;
+        if (__FUNCSIG__[I] == ' ')
+            return true;
+    }
+    assert(false);
+    return false;
+}
+
+template <typename E, auto Value>
+constexpr bool enumIsValid() {
+    using U = std::underlying_type_t<E>;
+    return enumIsValidImpl<std::bit_cast<E>(static_cast<U>(Value))>();
+}
+
 #else
 #error Unsupported compiler
 #endif
@@ -1243,7 +1265,9 @@ public:
             return *this;
         }
         if (get_rtti(base()) == get_rtti(rhs.base())) {
-            visit([&]<typename T>(T& This) { This = std::move(rhs.template get<T>()); });
+            visit([&]<typename T>(T& This) {
+                This = std::move(rhs.template get<T>());
+            });
             return *this;
         }
         std::destroy_at(this);
