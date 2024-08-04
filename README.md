@@ -3,6 +3,8 @@
 This is a support library I originally wrote for my compiler project. 
 It is inspired by LLVM's RTTI, but goes a step further by allowing `std::variant`-like `visit` expressions. 
 
+Requires C++20 and a recent version of Clang (>=13) or GCC (>=11) 
+
 ## Pattern matching
 
 The central function in this library is `csp::visit`:
