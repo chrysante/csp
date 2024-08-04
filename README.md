@@ -5,6 +5,23 @@ It is inspired by LLVM's RTTI, but goes a step further by allowing `std::variant
 
 Requires C++20 and a recent version of Clang (>=13) or GCC (>=11) 
 
+## Build
+
+This is a header-only library. You can add the library to your project using CMake's FetchContent functions: 
+
+    include(FetchContent)
+
+    FetchContent_Declare(
+        csp
+        GIT_REPOSITORY https://github.com/chrysante/csp.git
+        GIT_TAG        0.0.1  # Use the appropriate branch or tag
+    )
+    FetchContent_MakeAvailable(csp)
+
+    target_link_libraries(YourTarget PUBLIC csp)
+
+or by simply copying the "csp.hpp" header into your project.
+
 ## Pattern matching
 
 The central function in this library is `csp::visit`:
