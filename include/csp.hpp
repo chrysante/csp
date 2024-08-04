@@ -324,7 +324,7 @@ template <typename IDType>
 struct IDTraits {
     static constexpr size_t count = enumCount<IDType>();
 
-    static constexpr IDType first = IDType{ enumRangeFirst<IDType>() };
+    static constexpr IDType first = IDType(enumRangeFirst<IDType>());
     static constexpr IDType last = IDType(enumRangeLast<IDType>());
 
     static_assert((std::underlying_type_t<IDType>)first == 0,
