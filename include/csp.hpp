@@ -186,15 +186,18 @@ struct CTVP;
 
 #if defined(__GNUC__)
 #define CSP_IMPL_ALWAYS_INLINE __attribute__((always_inline))
+#define CSP_IMPL_NOINLINE      __attribute__((noinline))
 #if defined(__clang__)
 #define CSP_IMPL_NODEBUG_IMPL __attribute__((nodebug))
 #else
 #define CSP_IMPL_NODEBUG_IMPL
 #endif
 #elif defined(_MSC_VER)
+#define CSP_IMPL_NOINLINE      __declspec(noinline)
 #define CSP_IMPL_ALWAYS_INLINE __forceinline
 #define CSP_IMPL_NODEBUG_IMPL
 #else
+#define CSP_IMPL_NOINLINE
 #define CSP_IMPL_ALWAYS_INLINE
 #define CSP_IMPL_NODEBUG_IMPL
 #endif
@@ -587,13 +590,18 @@ constexpr To dyncastImpl(From* from) {
     return nullptr;
 }
 
+[[noreturn]] CSP_IMPL_NOINLINE inline void throwBadCast() {
+    throw std::bad_cast();
+}
+
 template <typename To, typename From>
 constexpr To dyncastImpl(From& from) {
     using ToNoRef = std::remove_reference_t<To>;
     if (auto* result = dyncastImpl<ToNoRef*>(&from)) {
         return *result;
     }
-    throw std::bad_cast();
+    throwBadCast();
+    unreachable();
 }
 
 template <typename To>
@@ -839,8 +847,8 @@ struct MakeVisitorCasesImpl;
 
 template <typename R, typename F, typename... T,
           typename... InvocableIndices // <- Pack of index_sequences with the
-          // same size as T that hold the invocable
-          // indices for each T
+                                       // same size as T that hold the invocable
+                                       // indices for each T
           >
 struct MakeVisitorCasesImpl<R, F, TypeList<T...>,
                             TypeList<InvocableIndices...>> {
