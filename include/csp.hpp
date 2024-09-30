@@ -1365,8 +1365,9 @@ private:
 namespace impl {
 
 /// The `toFunction` functions forward class types as is and wrap function
-/// pointers in lambdas so it becomes possible to derive from them. Function
-/// object case
+/// pointers in lambdas so it becomes possible to derive from them.
+
+/// Function object case
 template <typename F>
 requires std::is_class_v<std::remove_reference_t<F>>
 constexpr F&& toFunction(F&& f) {
@@ -1376,21 +1377,94 @@ constexpr F&& toFunction(F&& f) {
 /// Function pointer case
 template <typename R, typename... Args>
 constexpr auto toFunction(R (*fptr)(Args...)) {
-    return [fptr](Args... args) { return fptr((Args&&)args...); };
+    return [fptr](Args&&... args) noexcept(false) -> R {
+        return fptr((Args&&)args...);
+    };
+}
+
+template <typename R, typename... Args>
+constexpr auto toFunction(R (*fptr)(Args...) noexcept) {
+    return
+        [fptr](Args&&... args) noexcept -> R { return fptr((Args&&)args...); };
 }
 
 /// Member function pointer case
-template <typename R, typename T, typename... Args>
-constexpr auto toFunction(R (T::*fptr)(Args...)) {
-    return [fptr](T& object, Args... args) {
-        return (object.*fptr)((Args&&)args...);
+#define CSP_IMPL_DEF_TOFUNCTION_MEM_IMPL(FnQual, Noexcept)                     \
+    template <typename R, typename T, typename... Args>                        \
+    constexpr auto toFunction(R (T::*fptr)(Args...) FnQual Noexcept) {         \
+        struct Impl {                                                          \
+            R (T::*fptr)(Args...) FnQual;                                      \
+            constexpr R operator()(T FnQual& t,                                \
+                                   Args&&... args) const Noexcept {            \
+                return (t.*fptr)((Args&&)args...);                             \
+            }                                                                  \
+            constexpr R operator()(T FnQual&& t,                               \
+                                   Args&&... args) const Noexcept {            \
+                return (((T FnQual&&)t).*fptr)((Args&&)args...);               \
+            }                                                                  \
+        };                                                                     \
+        return Impl{ fptr };                                                   \
+    }
+
+#define CSP_IMPL_DEF_TOFUNCTION_MEM(FnQual)                                    \
+    CSP_IMPL_DEF_TOFUNCTION_MEM_IMPL(FnQual, )                                 \
+    CSP_IMPL_DEF_TOFUNCTION_MEM_IMPL(FnQual, noexcept)
+
+CSP_IMPL_DEF_TOFUNCTION_MEM()
+CSP_IMPL_DEF_TOFUNCTION_MEM(const)
+CSP_IMPL_DEF_TOFUNCTION_MEM(volatile)
+CSP_IMPL_DEF_TOFUNCTION_MEM(const volatile)
+
+#undef CSP_IMPL_DEF_TOFUNCTION_MEM
+#undef CSP_IMPL_DEF_TOFUNCTION_MEM_IMPL
+
+#define CSP_IMPL_DEF_TOFUNCTION_MEMREF_IMPL(FnQual, Noexcept)                  \
+    template <typename R, typename T, typename... Args>                        \
+    constexpr auto toFunction(R (T::*fptr)(Args...) FnQual Noexcept) {         \
+        return [fptr](T FnQual object, Args&&... args) -> R {                  \
+            return (((T FnQual)object).*fptr)((Args&&)args...);                \
+        };                                                                     \
+    }
+
+#define CSP_IMPL_DEF_TOFUNCTION_MEMREF(FnQual)                                 \
+    CSP_IMPL_DEF_TOFUNCTION_MEMREF_IMPL(FnQual, )                              \
+    CSP_IMPL_DEF_TOFUNCTION_MEMREF_IMPL(FnQual, noexcept)
+
+CSP_IMPL_DEF_TOFUNCTION_MEMREF(&)
+CSP_IMPL_DEF_TOFUNCTION_MEMREF(&&)
+CSP_IMPL_DEF_TOFUNCTION_MEMREF(const&)
+CSP_IMPL_DEF_TOFUNCTION_MEMREF(const&&)
+CSP_IMPL_DEF_TOFUNCTION_MEMREF(volatile&)
+CSP_IMPL_DEF_TOFUNCTION_MEMREF(volatile&&)
+CSP_IMPL_DEF_TOFUNCTION_MEMREF(const volatile&)
+CSP_IMPL_DEF_TOFUNCTION_MEMREF(const volatile&&)
+
+#undef CSP_IMPL_DEF_TOFUNCTION_MEMREF
+#undef CSP_IMPL_DEF_TOFUNCTION_MEMREF_IMPL
+
+/// Member data pointer case
+template <typename R, typename T>
+constexpr auto toFunction(R(T::*memptr)) {
+    struct Impl {
+        R(T::*memptr);
+        constexpr R& operator()(T& t) const noexcept { return t.*memptr; }
+        constexpr R const& operator()(T const& t) const noexcept {
+            return t.*memptr;
+        }
+        constexpr R&& operator()(T&& t) const noexcept {
+            return std::move(t).*memptr;
+        }
+        constexpr R const&& operator()(T const&& t) const noexcept {
+            return std::move(t).*memptr;
+        }
     };
+    return Impl{ memptr };
 }
 
 /// Return type of `toFunction`
 template <typename F>
 using ToFunctionT =
-    std::remove_reference_t<decltype(toFunction(std::declval<F>()))>;
+    std::remove_reference_t<decltype(impl::toFunction(std::declval<F>()))>;
 
 } // namespace impl
 
@@ -1406,7 +1480,7 @@ using ToFunctionT =
 ///     };
 ///
 template <typename... F>
-struct overload: impl::ToFunctionT<F>... {
+struct overload: private impl::ToFunctionT<F>... {
     template <typename... G>
     constexpr overload(G&&... g):
         impl::ToFunctionT<F>(impl::toFunction((G&&)g))... {}

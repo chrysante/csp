@@ -335,13 +335,12 @@ static_assert(constexprVisitationReturnVoid());
 static constexpr int constexprVisitationMultipleArguments() {
     Dolphin d;
     Leopard l;
-    return csp::visit((Cetacea&)d, (Animal const&)l,
-                      csp::overload{ [&](Cetacea const&, Leopard const&) {
-        return 1;
-    }, [&](Cetacea const&, Animal const&) { return '\0'; },
-                                     [&](Animal const&, Animal const&) {
-        return (unsigned short)0;
-    } }); // clang-format on
+    // clang-format off
+    return csp::visit((Cetacea&)d, (Animal const&)l, csp::overload{
+        [&](Cetacea const&, Leopard const&) { return 1; },
+        [&](Cetacea const&, Animal const&) { return '\0'; },
+        [&](Animal const&, Animal const&) { return (unsigned short)0; }
+    }); // clang-format on
 }
 
 static_assert(constexprVisitationMultipleArguments() == 1);
@@ -740,18 +739,109 @@ int testFunction(int) {
     return 42;
 }
 
+int testFunctionNoexcept(int) noexcept {
+    return 42;
+}
+
+extern "C" int ExternCFunction() {
+    return 42;
+}
+
+int& testFunctionForwardRef(int& value) {
+    return value;
+}
+
 struct TestClass {
-    int foo(int) { return 42; }
+    int Unqual(int) noexcept { return 42; }
+    int ConstQual(int) const { return 42; }
+    int LRefQual(int) & noexcept { return 42; }
+    int ConstLRefQual(int) const& { return 42; }
+    int RRefQual(int) && { return 42; }
+    int ConstRRefQual(int) const&& { return 42; }
+
+    int VolatileQual(int) volatile { return 42; }
+    // ...
+
+    int& ForwardRef(int& i) const { return i; }
+
+    void VoidFn(int& i, int value) const { i = value; }
+
+    static int StaticFn() { return 42; }
+
+    int Value = 42;
+    int const ConstValue = 42;
+};
+
+struct MyFunctionObj {
+    int operator()() const { return 42; }
+    /// ADL attack on the implementation
+    friend void toFunction(TestClass const&) {}
 };
 
 } // namespace
 
 static void testToFunction() {
-    auto f = csp::overload{ testFunction };
-    assert(f(0) == 42);
-    auto g = csp::overload{ &TestClass::foo };
+    assert(csp::overload{ testFunction }(0) == 42);
+    assert(csp::overload{ testFunctionNoexcept }(0) == 42);
+    assert(csp::overload{ ExternCFunction }() == 42);
+    {
+        int value = 0;
+        csp::overload{ testFunctionForwardRef }(value) = 42;
+        assert(value == 42);
+    }
     TestClass t;
-    assert(g(t, 0) == 42);
+    using TC = TestClass;
+    assert(csp::overload{ &TC::Unqual }(t, 0) == 42);
+    assert(csp::overload{ &TC::Unqual }(std::move(t), 0) == 42);
+    assert(csp::overload{ &TC::ConstQual }((TC const&)t, 0) == 42);
+    assert(csp::overload{ &TC::ConstQual }((TestClass const&&)t, 0) == 42);
+    assert(csp::overload{ &TC::LRefQual }(t, 0) == 42);
+    assert(csp::overload{ &TC::ConstLRefQual }((TC const&)t, 0) == 42);
+    assert(csp::overload{ &TC::RRefQual }(std::move(t), 0) == 42);
+    assert(csp::overload{ &TC::ConstRRefQual }(std::move((TC const&)t), 0) ==
+           42);
+
+    assert(csp::overload{ &TC::VolatileQual }(t, 0) == 42);
+    // ...
+
+    {
+        int value = 0;
+        csp::overload{ &TC::ForwardRef }(t, value) = 42;
+        assert(value == 42);
+    }
+
+    {
+        int value = 0;
+        csp::overload{ &TC::VoidFn }(t, value, 42);
+        assert(value == 42);
+    }
+
+    csp::overload{ &TC::Value }(t) = 0;
+    assert(t.Value == 0);
+    assert(csp::overload{ &TC::ConstValue }(t) == 42);
+
+    assert(csp::overload{ &TC::StaticFn }() == 42);
+
+    csp::overload moveOnly = { [p = std::make_unique<int>(42)]() {
+        return *p;
+    } };
+    auto moveOnly2 = std::move(moveOnly);
+    assert(moveOnly2() == 42);
+
+    assert(csp::overload{ MyFunctionObj{} }() == 42);
+
+    {
+        struct Stateful {
+            int operator()() { return value++; }
+            int value = 0;
+        };
+        csp::overload f{ Stateful{} };
+        assert(f() == 0);
+        assert(f() == 1);
+        assert(f() == 2);
+    }
+
+    CHECK_THROWS(csp::overload{ []() { throw 0; } }());
 }
 
 #ifndef CSP_IMPL_TEST_COMPILER_ERRORS
