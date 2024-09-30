@@ -83,8 +83,15 @@ using std::size_t;
 
 #ifdef __GNUC__
 
+/// \Returns `true` if the value of \p E refers to a named value in the enum
+/// `decltype(E)` This works by scanning the string `__PRETTY_FUNCTION__` within
+/// this function.
 template <auto E>
 constexpr bool enumIsValidImpl() {
+    // Valid enum values look like this:
+    //     bool enumIsValidImpl<auto E>() [E = EnumName::Enumerator]
+    // Invalid enum values look like this:
+    //     bool enumIsValidImpl<auto E>() [E = (EnumName)<Numerical-Value>]
     for (size_t I = sizeof(__PRETTY_FUNCTION__) - 2; I >= 0; --I) {
         if (__PRETTY_FUNCTION__[I] == ')')
             return false;
@@ -128,6 +135,9 @@ constexpr bool enumIsValid() {
 #error Unsupported compiler
 #endif
 
+/// Implementation of `enumRangeFirst` and `enumRangeLast`
+/// Scans the values `{ I, I + Inc, ..., End }` until a valid enum value is
+/// found and returns that value
 template <typename E, long long I, long long End, long long Inc>
 constexpr long long enumRangeBound() {
     if constexpr (I == End || enumIsValid<E, I>()) {
@@ -138,18 +148,21 @@ constexpr long long enumRangeBound() {
     }
 }
 
+/// \Returns the underlying value of the smallest enumerator in `E`
 template <typename E, long long Min = CSP_IMPL_ENUM_RANGE_MIN,
           long long Max = CSP_IMPL_ENUM_RANGE_MAX>
 constexpr long long enumRangeFirst() {
     return enumRangeBound<E, Min, Max, 1>();
 }
 
+/// \Returns the underlying value of the largest enumerator in `E`
 template <typename E, long long Min = CSP_IMPL_ENUM_RANGE_MIN,
           long long Max = CSP_IMPL_ENUM_RANGE_MAX>
 constexpr long long enumRangeLast() {
     return enumRangeBound<E, Max, Min, -1>() + 1;
 }
 
+/// \Returns the number of enumerators in `E`, assuming there are no gaps
 template <typename E>
 constexpr std::size_t enumCount() {
     return static_cast<std::size_t>(enumRangeLast<E>() - enumRangeFirst<E>());
