@@ -1019,13 +1019,50 @@ CSP_IMPL_NODEBUG constexpr decltype(auto) visitImpl(F&& f, T&&... t) {
     using FlatCaseIndexList =
         typename MakeVisitorCases<R, F, T...>::FlatCaseIndexList;
     using ReturnType = DeduceReturnType<R, F, TypeList<T...>, CaseTypeList>;
-
+    using Invoker =
+        InvokeVisitorCases<ReturnType, CaseTypeList, FlatCaseIndexList>;
     Array index = { (size_t)get_rtti(t)... };
     size_t flatIndex = flattenIndex(index, TypesToBounds<T...>);
-    return InvokeVisitorCases<ReturnType, CaseTypeList,
-                              FlatCaseIndexList>::impl(flatIndex,
-                                                       static_cast<F&&>(f),
-                                                       static_cast<T&&>(t)...);
+    constexpr size_t MaxInlineCases = 11;
+    if constexpr (FlatCaseIndexList::size() > MaxInlineCases) {
+        return Invoker::impl(flatIndex, static_cast<F&&>(f),
+                             static_cast<T&&>(t)...);
+    }
+    else {
+        constexpr auto FlatCaseIndexArray =
+            [&]<size_t... I>(std::index_sequence<I...>) {
+            Array<size_t, MaxInlineCases> result = { I... };
+            for (size_t i = FlatCaseIndexList::size(), j = 0;
+                 i < MaxInlineCases; ++i, ++j)
+                result[i] =
+                    IndexSequenceToArray<
+                        FlatCaseIndexList>[FlatCaseIndexList::size() - 1] +
+                    j + 1;
+            return result;
+        }(FlatCaseIndexList{});
+#define CSP_IMPL_VISIT_SWITCH_CASE(N)                                          \
+    case FlatCaseIndexArray[N]:                                                \
+        if constexpr (N < FlatCaseIndexList::size())                           \
+            return Invoker::impl(FlatCaseIndexArray[N], static_cast<F&&>(f),   \
+                                 static_cast<T&&>(t)...);                      \
+        else                                                                   \
+            unreachable();
+        switch (flatIndex) {
+            CSP_IMPL_VISIT_SWITCH_CASE(0)
+            CSP_IMPL_VISIT_SWITCH_CASE(1)
+            CSP_IMPL_VISIT_SWITCH_CASE(2)
+            CSP_IMPL_VISIT_SWITCH_CASE(3)
+            CSP_IMPL_VISIT_SWITCH_CASE(4)
+            CSP_IMPL_VISIT_SWITCH_CASE(5)
+            CSP_IMPL_VISIT_SWITCH_CASE(6)
+            CSP_IMPL_VISIT_SWITCH_CASE(7)
+            CSP_IMPL_VISIT_SWITCH_CASE(8)
+            CSP_IMPL_VISIT_SWITCH_CASE(9)
+            CSP_IMPL_VISIT_SWITCH_CASE(10)
+        default: unreachable();
+        }
+#undef CSP_IMPL_VISIT_SWITCH_CASE
+    }
 }
 
 } // namespace impl
