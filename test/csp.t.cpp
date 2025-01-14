@@ -522,13 +522,13 @@ static void testVisitSubtree2() {
 
 static void testMDVisit() {
     auto dispatcher = [](Base& b, LDerivedA& x) {
-        return csp::visit(b, x,
-                          csp::overload{
-                              [](Base&, LDerivedA& a) { return 0; },
-                              [](Base&, LDerivedB& b) { return 1; },
-                              [](LDerivedB&, LDerivedA& a) { return 2; },
-                              [](LDerivedB&, LDerivedB& b) { return 3; },
-                          });
+        // clang-format off
+        return csp::visit(b, x, csp::overload{
+            [](Base&, LDerivedA& a) { return 0; },
+            [](Base&, LDerivedB& b) { return 1; },
+            [](LDerivedB&, LDerivedA& a) { return 2; },
+            [](LDerivedB&, LDerivedB& b) { return 3; },
+        }); // clang-format on
     };
     LDerivedA a;
     LDerivedB b;
@@ -539,6 +539,27 @@ static void testMDVisit() {
     assert(dispatcher(b, a) == 2);
     assert(dispatcher(b, b) == 3);
     assert(dispatcher(b, c) == 3);
+}
+
+static void testMDVisit4() {
+    auto dispatcher = [](Base& a, LDerivedA& b, Base& c, Base& d) {
+        // clang-format off
+        return csp::visit(a, b, c, d, csp::overload{
+            [](Base&,      LDerivedA& a, Base&, Base&) { return 0; },
+            [](Base&,      LDerivedB& b, Base&, Base&) { return 1; },
+            [](LDerivedB&, LDerivedA& a, Base&, Base&) { return 2; },
+            [](LDerivedB&, LDerivedB& b, Base&, Base&) { return 3; },
+        }); // clang-format on
+    };
+    LDerivedA a;
+    LDerivedB b;
+    LDerivedC c;
+    assert(dispatcher(a, a, a, b) == 0);
+    assert(dispatcher(a, b, a, b) == 1);
+    assert(dispatcher(a, c, a, b) == 1);
+    assert(dispatcher(b, a, a, b) == 2);
+    assert(dispatcher(b, b, a, b) == 3);
+    assert(dispatcher(b, c, a, b) == 3);
 }
 
 static void testIsaAndDyncast2() {
@@ -1020,6 +1041,7 @@ int main() {
     testVisitSubtree();
     testVisitSubtree2();
     testMDVisit();
+    testMDVisit4();
     testIsaAndDyncast2();
     testSmallHierarchy();
     testDynDelete();
