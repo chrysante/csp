@@ -69,6 +69,16 @@ namespace impl {
 
 using std::size_t;
 
+[[noreturn]] inline void unreachable() {
+#if defined(__GNUC__)
+    __builtin_unreachable();
+#elif defined(_MSC_VER)
+    __assume(false);
+#else
+    assert(false);
+#endif
+}
+
 /// # Enum reflection machinery
 
 /// Starting value for scanning enum ranges
@@ -100,7 +110,7 @@ constexpr bool enumIsValidImpl() {
         if (__PRETTY_FUNCTION__[I] == ' ')
             return true;
     }
-    assert(false);
+    unreachable();
 }
 
 template <typename E, auto Value>
@@ -121,8 +131,7 @@ constexpr bool enumIsValidImpl() {
         if (__FUNCSIG__[I] == ' ')
             return true;
     }
-    assert(false);
-    return false;
+    unreachable();
 }
 
 template <typename E, auto Value>
@@ -186,16 +195,6 @@ template <auto...>
 struct CTVP;
 
 /// MARK: - General utilities
-
-[[noreturn]] inline void unreachable() {
-#if defined(__GNUC__)
-    __builtin_unreachable();
-#elif defined(_MSC_VER)
-    __assume(false);
-#else
-    assert(false);
-#endif
-}
 
 #if defined(__GNUC__)
 #define CSP_IMPL_ALWAYS_INLINE __attribute__((always_inline))
