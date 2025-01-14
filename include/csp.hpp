@@ -604,7 +604,11 @@ constexpr To dyncastImpl(From* from) {
 }
 
 [[noreturn]] CSP_IMPL_NOINLINE inline void throwBadCast() {
+#ifdef __EXCEPTIONS
     throw std::bad_cast();
+#else
+    unreachable();
+#endif
 }
 
 template <typename To, typename From>
@@ -614,7 +618,6 @@ constexpr To dyncastImpl(From& from) {
         return *result;
     }
     throwBadCast();
-    unreachable();
 }
 
 template <typename To>
@@ -1457,9 +1460,9 @@ CSP_IMPL_DEF_TOFUNCTION_MEMREF(const volatile&&)
 
 /// Member data pointer case
 template <typename R, typename T>
-constexpr auto toFunction(R(T::*memptr)) {
+constexpr auto toFunction(R(T::* memptr)) {
     struct Impl {
-        R(T::*memptr);
+        R(T::* memptr);
         constexpr R& operator()(T& t) const noexcept { return t.*memptr; }
         constexpr R const& operator()(T const& t) const noexcept {
             return t.*memptr;
