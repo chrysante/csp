@@ -1570,12 +1570,11 @@ template <impl::Dynamic T>
 inline constexpr auto filter =
     std::views::filter(isa<T>) |
     std::views::transform([]<typename U>(U&& u) -> decltype(auto) {
-    if constexpr (std::is_pointer_v<std::remove_cvref_t<U>>) {
-        return cast<impl::copy_cvref_t<std::remove_reference_t<U>, T>*>(u);
-    }
-    else {
+    using NoCvRef = std::remove_cvref_t<U>;
+    if constexpr (std::is_pointer_v<NoCvRef>)
+        return cast<impl::copy_cvref_t<std::remove_pointer_t<NoCvRef>, T>*>(u);
+    else
         return cast<impl::copy_cvref_t<std::remove_reference_t<U>, T>&>(u);
-    }
 });
 
 } // namespace csp

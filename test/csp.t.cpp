@@ -910,6 +910,15 @@ static void testPartialUnion() {
     assert(result == 1);
 }
 
+template <typename T, typename U>
+requires std::same_as<std::remove_cvref_t<U>, T>
+static void checkTypeStatic(U&&) {}
+
+template <typename T, std::ranges::range U>
+static void checkRangeTypeStatic(U&& u)
+requires requires { checkTypeStatic<T>(*u.begin()); }
+{}
+
 static void testRanges() {
 #if CSP_IMPL_HAS_RANGES
     Dolphin dolphin;
@@ -917,9 +926,14 @@ static void testRanges() {
     Leopard leopard;
     std::vector<Animal*> animals = { &dolphin, &whale, &leopard };
     assert(std::ranges::distance(animals | csp::filter<Dolphin>) == 1);
+    checkRangeTypeStatic<Dolphin*>(std::span<Animal*>(animals) |
+                                   csp::filter<Dolphin>);
+    checkRangeTypeStatic<Dolphin*>(std::span<Animal* const>(animals) |
+                                   csp::filter<Dolphin>);
+    checkRangeTypeStatic<Dolphin const*>(
+        std::span<Animal const* const>(animals) | csp::filter<Dolphin>);
     auto* d = (animals | csp::filter<Dolphin>).front();
     static_assert(std::is_same_v<Dolphin*, decltype(d)>);
-
     auto refs =
         animals | std::views::transform([](auto* p) -> auto& { return *p; });
     auto& r = (refs | csp::filter<Dolphin>).front();
