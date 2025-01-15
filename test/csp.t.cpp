@@ -1044,6 +1044,48 @@ void testUnscopedEnum() {
     assert(value == 1);
 }
 
+void testPublicMetaAPI() {
+    static_assert(csp::dynamic<Animal>);
+    static_assert(csp::dynamic<Dolphin>);
+    static_assert(csp::dynamic<Leopard>);
+    static_assert(!csp::dynamic<void>);
+    static_assert(!csp::dynamic<int>);
+
+    static_assert(csp::type_to_id_v<Animal> == ID::Animal);
+    static_assert(csp::type_to_id_v<Dolphin> == ID::Dolphin);
+    static_assert(csp::type_to_id<Animal>::value == ID::Animal);
+    static_assert(csp::type_to_id<Dolphin>::value == ID::Dolphin);
+
+    static_assert(std::same_as<csp::id_to_type_t<ID::Animal>, Animal>);
+    static_assert(std::same_as<csp::id_to_type_t<ID::Dolphin>, Dolphin>);
+    static_assert(std::same_as<csp::id_to_type<ID::Animal>::type, Animal>);
+    static_assert(std::same_as<csp::id_to_type<ID::Dolphin>::type, Dolphin>);
+
+    static_assert(std::same_as<csp::direct_base_t<Dolphin>, Cetacea>);
+    static_assert(std::same_as<csp::direct_base_t<Cetacea>, Animal>);
+    static_assert(std::same_as<csp::direct_base_t<Leopard>, Animal>);
+
+    static_assert(csp::direct_base_id(ID::Dolphin) == ID::Cetacea);
+    static_assert(csp::direct_base_id(ID::Cetacea) == ID::Animal);
+    static_assert(csp::direct_base_id(ID::Leopard) == ID::Animal);
+
+    static_assert(!csp::is_abstract_v<Dolphin>);
+    static_assert(csp::is_abstract_v<Cetacea>);
+    static_assert(!csp::is_abstract_v<Leopard>);
+
+    static_assert(!csp::is_abstract_id(ID::Dolphin));
+    static_assert(csp::is_abstract_id(ID::Cetacea));
+    static_assert(!csp::is_abstract_id(ID::Leopard));
+
+    static_assert(csp::shares_type_hierarchy_with<Animal, Dolphin>);
+    static_assert(!csp::shares_type_hierarchy_with<Animal, Base>);
+    static_assert(!csp::shares_type_hierarchy_with<Animal, void>);
+    static_assert(!csp::shares_type_hierarchy_with<Animal, int>);
+
+    static_assert(csp::id_isa(ID::Dolphin, ID::Dolphin));
+    static_assert(csp::id_isa(ID::Cetacea, ID::Dolphin));
+}
+
 int main() {
     testInternals();
     testIsaAndDyncast();
@@ -1066,4 +1108,5 @@ int main() {
     testVisitMostDerivedClass();
     testExternalDeletion();
     testUniquePtr();
+    testPublicMetaAPI();
 }

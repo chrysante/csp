@@ -519,8 +519,6 @@ using RebindSmartPtr = typename RebindSmartPtrImpl<P, To>::type;
 /// therefore the `ct` prefix
 template <typename IDType>
 static constexpr bool ctIsaImpl(IDType TestID, IDType ActualID) {
-    /// Poor mans `consteval`
-    assert(std::is_constant_evaluated());
     if constexpr (std::is_same_v<IDType, InvalidTypeID>) {
         CSP_IMPL_CTPrintVal(TestID);
         CSP_IMPL_CTPrintVal(ActualID);
@@ -562,6 +560,84 @@ template <typename Test, typename Known>
 constexpr bool isaImpl(Known& obj) {
     return isaImpl<Test>(&obj);
 }
+
+} // namespace impl
+
+/// MARK: - Type traits and type ID inspection
+
+/// Expose metaprogramming functionality to the user
+
+/// True for any class type registered with `csp`
+template <typename T>
+concept dynamic = impl::Dynamic<T>;
+
+/// Maps types to their RTTI
+template <dynamic T>
+constexpr auto type_to_id_v = impl::TypeToID<T>;
+
+/// Conventional meta function
+template <dynamic T>
+struct type_to_id {
+    static constexpr auto value = type_to_id_v<T>;
+};
+
+/// Maps RTTI to the respective type
+template <auto ID>
+requires dynamic<impl::IDToType<ID>>
+using id_to_type_t = impl::IDToType<ID>;
+
+/// Conventional meta function
+template <auto ID>
+requires dynamic<id_to_type_t<ID>>
+struct id_to_type: std::type_identity<id_to_type_t<ID>> {};
+
+/// Maps types to their direct base class as registered with `csp`
+template <dynamic T>
+using direct_base_t = impl::TypeToParent<T>;
+
+/// Conventional meta function
+template <dynamic T>
+struct direct_base: std::type_identity<direct_base_t<T>> {};
+
+/// Maps type IDs to their direct base class IDs as registered with `csp`
+template <typename IDType>
+constexpr IDType direct_base_id(IDType ID) {
+    return impl::IDToParent(ID);
+}
+
+/// True if \P T is registered as `Abstract`
+template <dynamic T>
+constexpr bool is_abstract_v =
+    impl::TypeToCorporeality<T> == impl::Corporeality::Abstract;
+
+/// Conventional meta function
+template <dynamic T>
+struct is_abstract {
+    static constexpr bool value = is_abstract_v<T>;
+};
+
+/// \Returns true if \P ID is registered as `Abstract`
+template <typename IDType>
+constexpr bool is_abstract_id(IDType ID) {
+    constexpr auto array = [&]<size_t... I>(std::index_sequence<I...>) {
+        return std::array<bool, sizeof...(I)>{
+            impl::IDToCorporeality<(IDType)I> == impl::Corporeality::Abstract...
+        };
+    }(std::make_index_sequence<impl::IDTraits<IDType>::count>{});
+    return array[(size_t)ID];
+}
+
+/// True if \p T and \p U are part of the same inheritance hierarchy
+template <typename T, typename U>
+concept shares_type_hierarchy_with = impl::SharesTypeHierarchyWith<T, U>;
+
+/// `isa` but both arguments are type IDs
+template <typename IDType>
+constexpr bool id_isa(IDType test, IDType known) {
+    return impl::ctIsaImpl(test, known);
+}
+
+namespace impl {
 
 template <typename Test>
 requires impl::Dynamic<Test>
