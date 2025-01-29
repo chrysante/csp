@@ -430,7 +430,7 @@ constexpr IDType IDToParent(IDType ID) {
 
 /// Maps \p T to the ID type of its class hierarchy
 template <typename T>
-using TypeToIDType = decltype(TypeToID<std::decay_t<T>>);
+using TypeToIDType = decltype(TypeToID<std::remove_cvref_t<T>>);
 
 /// Maps \p T to the number of types in its class hierarchy
 template <typename T>
@@ -571,6 +571,10 @@ constexpr bool isaImpl(Known& obj) {
 template <typename T>
 concept dynamic = impl::Dynamic<T>;
 
+/// Number of classes in the hierarchy of \p T
+template <dynamic T>
+constexpr size_t hierarchy_size = impl::IDTraits<impl::TypeToIDType<T>>::count;
+
 /// Maps types to their RTTI
 template <dynamic T>
 constexpr auto type_to_id_v = impl::TypeToID<T>;
@@ -618,6 +622,7 @@ struct is_abstract {
 
 /// \Returns true if \P ID is registered as `Abstract`
 template <typename IDType>
+requires dynamic<id_to_type_t<IDType{ 0 }>>
 constexpr bool is_abstract_id(IDType ID) {
     constexpr auto array = [&]<size_t... I>(std::index_sequence<I...>) {
         return std::array<bool, sizeof...(I)>{
