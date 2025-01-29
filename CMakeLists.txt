@@ -57,3 +57,19 @@ add_executable(compiler-errors
 
 target_link_libraries(compiler-errors csp)
 
+# Benchmark
+
+include(FetchContent)
+FetchContent_Declare(
+    googlebenchmark
+    GIT_REPOSITORY https://github.com/google/benchmark.git
+    GIT_TAG v1.6.1 
+)
+set(BENCHMARK_ENABLE_TESTING OFF)
+set(BENCHMARK_USE_BUNDLED_GTEST OFF)
+set(BENCHMARK_DOWNLOAD_DEPENDENCIES ON)
+FetchContent_MakeAvailable(googlebenchmark)
+
+add_executable(csp-benchmark)
+target_sources(csp-benchmark PRIVATE benchmark/animals.hpp benchmark/main.cpp)
+target_link_libraries(csp-benchmark csp benchmark::benchmark)
