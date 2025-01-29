@@ -1162,42 +1162,15 @@ CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T&& t, F&& fn) {
     return impl::visitImpl<R>((F&&)fn, (T&&)t);
 }
 
-template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
-          impl::Dynamic T1>
-CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, F&& fn) {
-    return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1);
-}
-
-template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
-          impl::Dynamic T1, impl::Dynamic T2>
-CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
-                                                F&& fn) {
-    return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2);
-}
-
-template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
-          impl::Dynamic T1, impl::Dynamic T2, impl::Dynamic T3>
-CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
-                                                T3&& t3, F&& fn) {
-    return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2, (T3&&)t3);
-}
-
-template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
-          impl::Dynamic T1, impl::Dynamic T2, impl::Dynamic T3,
-          impl::Dynamic T4>
-CSP_IMPL_NODEBUG constexpr decltype(auto) visit(T0&& t0, T1&& t1, T2&& t2,
-                                                T3&& t3, T4&& t4, F&& fn) {
-    return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2, (T3&&)t3,
-                              (T4&&)t4);
-}
-
-template <typename R = impl::DeduceReturnTypeTag, typename F, impl::Dynamic T0,
-          impl::Dynamic T1, impl::Dynamic T2, impl::Dynamic T3,
-          impl::Dynamic T4, impl::Dynamic T5>
-CSP_IMPL_NODEBUG constexpr decltype(auto)
-visit(T0&& t0, T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5, F&& fn) {
-    return impl::visitImpl<R>((F&&)fn, (T0&&)t0, (T1&&)t1, (T2&&)t2, (T3&&)t3,
-                              (T4&&)t4, (T5&&)t5);
+template <typename R = impl::DeduceReturnTypeTag, typename... Args>
+requires(sizeof...(Args) >= 3)
+CSP_IMPL_NODEBUG constexpr decltype(auto) visit(Args&&... args) {
+    std::tuple<Args&&...> argTuple = { std::forward<Args>(args)... };
+    constexpr size_t N = sizeof...(Args);
+    return [&]<size_t... I>(std::index_sequence<I...>) -> decltype(auto) {
+        return impl::visitImpl<R>(std::get<N - 1>(argTuple),
+                                  std::get<I>(argTuple)...);
+    }(std::make_index_sequence<N - 1>{});
 }
 
 } // namespace ops
